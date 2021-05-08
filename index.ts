@@ -29,6 +29,13 @@ function createShaderProgram(
   throw new Error(message);
 }
 
+function resizeCanvasToDisplaySize(canvas: HTMLCanvasElement) {
+  if (canvas.width !== canvas.clientWidth || canvas.height !== canvas.clientHeight) {
+    canvas.width = canvas.clientWidth;
+    canvas.height = canvas.clientHeight;
+  }
+}
+
 window.onload = () => {
   const canvas = document.querySelector('#c');
   if (canvas instanceof HTMLCanvasElement) {
@@ -36,8 +43,12 @@ window.onload = () => {
     const vertexShaderSource = `#version 300 es
 
       in vec3 a_position;
+      in vec3 a_colour;
+
+      out vec3 v_colour;
 
       void main() {
+        v_colour = a_colour;
         gl_Position = vec4(a_position, 1.0);
       }
     `;
@@ -45,10 +56,12 @@ window.onload = () => {
 
       precision highp float;
 
+      in vec3 v_colour;
+
       out vec4 outColour;
 
       void main() {
-        outColour = vec4(1.0, 0.0, 0.0, 1.0);
+        outColour = vec4(v_colour, 1.0);
       }
     `;
     const shaderProgram = createShaderProgram(
@@ -58,29 +71,41 @@ window.onload = () => {
         fragment: createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource),
       }
     );
-    gl.useProgram(shaderProgram);
+
+    const vao = gl.createVertexArray();
+    gl.bindVertexArray(vao);
+
+    const positionAttributeLocation = gl.getAttribLocation(shaderProgram, 'a_position');
+    const vertexBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
     const vertices = [
       -0.5, 0.5, 0.0,
       -0.5, -0.5, 0.0,
       0.5, -0.5, 0.0,
     ];
-    const indices = [0, 1, 2];
-    const vertexBuffer = gl.createBuffer()
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-    const position = gl.getAttribLocation(shaderProgram, 'a_position');
-    gl.vertexAttribPointer(position, 3, gl.FLOAT, false, 0, 0);
-    gl.enableVertexAttribArray(position);
-    gl.bindBuffer(gl.ARRAY_BUFFER, null);
-    const indexBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
-    gl.viewport(0, 0, canvas.width, canvas.height);
-    gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    gl.enableVertexAttribArray(positionAttributeLocation);
+    gl.vertexAttribPointer(positionAttributeLocation, 3, gl.FLOAT, false, 0, 0);
+
+    const colourAttributeLocation = gl.getAttribLocation(shaderProgram, 'a_colour');
+    const colourBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, colourBuffer);
+    const colours = [
+      1.0, 0.0, 0.0,
+      0.0, 1.0, 0.0,
+      0.0, 0.0, 1.0,
+    ];
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colours), gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(colourAttributeLocation);
+    gl.vertexAttribPointer(colourAttributeLocation, 3, gl.FLOAT, false, 0, 0);
+
+    resizeCanvasToDisplaySize(canvas);
+
+    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+    gl.clearColor(0, 0, 0, 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-    gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
+    gl.useProgram(shaderProgram);
+    gl.bindVertexArray(vao);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
   }
 }
