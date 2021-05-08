@@ -1,22 +1,32 @@
+function createShader(gl: WebGL2RenderingContext, type: number, source: string): WebGLShader {
+  const shader = gl.createShader(type);
+  gl.shaderSource(shader, source);
+  gl.compileShader(shader);
+  if (gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+    return shader;
+  }
+  const message = gl.getShaderInfoLog(shader);
+  gl.deleteShader(shader);
+  throw new Error(message);
+}
+
 function createShaderProgram(
   gl: WebGL2RenderingContext,
-  vertexShaderSource: string,
-  fragmentShaderSource: string,
+  shaders: {
+    vertex: WebGLShader,
+    fragment: WebGLShader,
+  }
 ): WebGLProgram {
-  const vertexShader = gl.createShader(gl.VERTEX_SHADER);
-  gl.shaderSource(vertexShader, vertexShaderSource);
-  gl.compileShader(vertexShader);
-  const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
-  gl.shaderSource(fragmentShader, fragmentShaderSource)
-  gl.compileShader(fragmentShader);
   const shaderProgram = gl.createProgram();
-  gl.attachShader(shaderProgram, vertexShader);
-  gl.attachShader(shaderProgram, fragmentShader);
+  gl.attachShader(shaderProgram, shaders.vertex);
+  gl.attachShader(shaderProgram, shaders.fragment);
   gl.linkProgram(shaderProgram);
   if (gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
     return shaderProgram;
   }
-  throw new Error(gl.getProgramInfoLog(shaderProgram));
+  const message = gl.getProgramInfoLog(shaderProgram);
+  gl.deleteProgram(shaderProgram);
+  throw new Error(message);
 }
 
 window.onload = () => {
@@ -33,11 +43,21 @@ window.onload = () => {
     `;
     const fragmentShaderSource = `#version 300 es
 
+      precision highp float;
+
+      out vec4 outColour;
+
       void main() {
-        gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+        outColour = vec4(1.0, 0.0, 0.0, 1.0);
       }
     `;
-    const shaderProgram = createShaderProgram(gl, vertexShaderSource, fragmentShaderSource);
+    const shaderProgram = createShaderProgram(
+      gl,
+      {
+        vertex: createShader(gl, gl.VERTEX_SHADER, vertexShaderSource),
+        fragment: createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource),
+      }
+    );
     gl.useProgram(shaderProgram);
     const vertices = [
       -0.5, 0.5, 0.0,
