@@ -3,7 +3,7 @@
 Start the typescript compiler in watch mode:
 
 ```
-tsc index.ts -w --sourceMap
+npx webpack -w
 ```
 
 This will make a file named "index.js".

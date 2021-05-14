@@ -1,5 +1,10 @@
+import { Mesh2D } from './mesh';
+
 function createShader(gl: WebGL2RenderingContext, type: number, source: string): WebGLShader {
   const shader = gl.createShader(type);
+  if (shader === null) {
+    throw new Error("failed to create shader");
+  }
   gl.shaderSource(shader, source);
   gl.compileShader(shader);
   if (gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
@@ -7,7 +12,7 @@ function createShader(gl: WebGL2RenderingContext, type: number, source: string):
   }
   const message = gl.getShaderInfoLog(shader);
   gl.deleteShader(shader);
-  throw new Error(message);
+  throw new Error("failed to compile shader: " + message);
 }
 
 function createShaderProgram(
@@ -18,6 +23,9 @@ function createShaderProgram(
   }
 ): WebGLProgram {
   const shaderProgram = gl.createProgram();
+  if (shaderProgram === null) {
+    throw new Error("failed to create shader program");
+  }
   gl.attachShader(shaderProgram, shaders.vertex);
   gl.attachShader(shaderProgram, shaders.fragment);
   gl.linkProgram(shaderProgram);
@@ -26,7 +34,7 @@ function createShaderProgram(
   }
   const message = gl.getProgramInfoLog(shaderProgram);
   gl.deleteProgram(shaderProgram);
-  throw new Error(message);
+  throw new Error("failed to link program:" + message);
 }
 
 function resizeCanvasToDisplaySize(canvas: HTMLCanvasElement) {
@@ -40,16 +48,19 @@ window.onload = () => {
   const canvas = document.querySelector('#c');
   if (canvas instanceof HTMLCanvasElement) {
     const gl = canvas.getContext('webgl2');
+    if (gl === null) {
+      throw new Error("failed to create webgl2 context");
+    }
     const vertexShaderSource = `#version 300 es
 
-      in vec3 a_position;
+      in vec2 a_position;
       in vec3 a_colour;
 
       out vec3 v_colour;
 
       void main() {
         v_colour = a_colour;
-        gl_Position = vec4(a_position, 1.0);
+        gl_Position = vec4(a_position, 0.0, 1.0);
       }
     `;
     const fragmentShaderSource = `#version 300 es
@@ -72,32 +83,51 @@ window.onload = () => {
       }
     );
 
-    const vao = gl.createVertexArray();
-    gl.bindVertexArray(vao);
+    const mesh = new Mesh2D({
+      cols: 20,
+      rows: 10,
+      x: -0.1,
+      y: -0.5,
+      width: 1.0,
+      height: 1.0,
+    });
 
     const positionAttributeLocation = gl.getAttribLocation(shaderProgram, 'a_position');
     const vertexBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-    const vertices = [
-      -0.5, 0.5, 0.0,
-      -0.5, -0.5, 0.0,
-      0.5, -0.5, 0.0,
-    ];
+    const vertices = mesh.vertexBuffer();
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
     gl.enableVertexAttribArray(positionAttributeLocation);
-    gl.vertexAttribPointer(positionAttributeLocation, 3, gl.FLOAT, false, 0, 0);
+    gl.vertexAttribPointer(positionAttributeLocation, 2, gl.FLOAT, false, 0, 0);
 
     const colourAttributeLocation = gl.getAttribLocation(shaderProgram, 'a_colour');
     const colourBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, colourBuffer);
-    const colours = [
-      1.0, 0.0, 0.0,
-      0.0, 1.0, 0.0,
-      0.0, 0.0, 1.0,
-    ];
+    const colours = Array.apply(null, Array(mesh.numVertices())).flatMap((_: any) => [1.0, 0.0, 0.0]);
+    console.log(colours);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colours), gl.STATIC_DRAW);
     gl.enableVertexAttribArray(colourAttributeLocation);
     gl.vertexAttribPointer(colourAttributeLocation, 3, gl.FLOAT, false, 0, 0);
+
+    const indexBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+    const indices = mesh.triangleIndexBuffer();
+    gl.bufferData(
+      gl.ELEMENT_ARRAY_BUFFER,
+      new Uint16Array(indices),
+      gl.STATIC_DRAW,
+    );
+
+    const indexBufferWireframe = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBufferWireframe);
+    const indicesWireframe = mesh.lineStripIndexBuffer();
+    gl.bufferData(
+      gl.ELEMENT_ARRAY_BUFFER,
+      new Uint16Array(indicesWireframe),
+      gl.STATIC_DRAW,
+    );
+
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
 
     resizeCanvasToDisplaySize(canvas);
 
@@ -105,7 +135,7 @@ window.onload = () => {
     gl.clearColor(0, 0, 0, 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.useProgram(shaderProgram);
-    gl.bindVertexArray(vao);
-    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    //gl.drawElements(gl.LINE_STRIP, mesh.lineStripNumIndices(), gl.UNSIGNED_SHORT, 0);
+    gl.drawElements(gl.TRIANGLES, mesh.triangleNumIndices(), gl.UNSIGNED_SHORT, 0);
   }
 }
