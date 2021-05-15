@@ -1,5 +1,5 @@
 import { Mesh2D } from './mesh';
-import { Matrix44, Vector3 } from './math';
+import { Matrix44, Vector3, Vector4 } from './math';
 
 function createShader(gl: WebGL2RenderingContext, type: number, source: string): WebGLShader {
   const shader = gl.createShader(type);
@@ -57,11 +57,14 @@ window.onload = () => {
       in vec2 a_position;
       in vec3 a_colour;
 
+      uniform mat3 u_transform;
+
       out vec3 v_colour;
 
       void main() {
         v_colour = a_colour;
-        gl_Position = vec4(a_position, 0.0, 1.0);
+        vec3 pos = u_transform * vec3(a_position, 1);
+        gl_Position = vec4(pos, 1.0);
       }
     `;
     const fragmentShaderSource = `#version 300 es
@@ -83,6 +86,15 @@ window.onload = () => {
         fragment: createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource),
       }
     );
+    gl.useProgram(shaderProgram);
+
+    const translate = [
+      1, 0, 0,
+      0, 1, 0,
+      1, 0, 0,
+    ];
+    const transformUniformLocation = gl.getUniformLocation(shaderProgram, 'u_transform');
+    gl.uniformMatrix3fv(transformUniformLocation, false, translate);
 
     const mesh = new Mesh2D({
       cols: 20,
@@ -131,8 +143,12 @@ window.onload = () => {
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
     gl.clearColor(0, 0, 0, 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.useProgram(shaderProgram);
     gl.drawElements(gl.LINE_STRIP, mesh.lineStripNumIndices(), gl.UNSIGNED_SHORT, 0);
     //gl.drawElements(gl.TRIANGLES, mesh.triangleNumIndices(), gl.UNSIGNED_SHORT, 0);
   }
+
+  const m = new Matrix44().setAlign(new Vector3(1, 0, 0), new Vector3(0, 0, 1));
+  const v = new Vector4(1, 0, 1, 1);
+  v.setMultiplyMatrix44(m, v);
+  console.log(v.data);
 }
