@@ -1,4 +1,4 @@
-function triangleIndexBuffer({ rows, cols }: { rows: number, cols: number }): number[] {
+function triangleIndexBuffer({ rows, cols }: { rows: number, cols: number }): Uint16Array {
   const indices = [];
   const vertexCols = cols + 1;
 
@@ -18,21 +18,23 @@ function triangleIndexBuffer({ rows, cols }: { rows: number, cols: number }): nu
     }
   }
 
-  return indices;
+  return new Uint16Array(indices);
 }
 
 function triangleNumIndices({ rows, cols }: { rows: number, cols: number }): number {
   return rows * cols * 6;
 }
 
-function lineStripIndexBuffer({ rows, cols }: { rows: number, cols: number }): number[] {
+function lineStripIndexBuffer({ rows, cols }: { rows: number, cols: number }): Uint16Array {
   const indices = [];
   const vertexCols = cols + 1;
+
+  indices.push(0);
 
   for (let i = 0; i < rows; i++) {
 
     // top line, left to right
-    for (let j = 0; j < vertexCols; j++) {
+    for (let j = 1; j < vertexCols; j++) {
       indices.push((i * vertexCols) + j);
     }
 
@@ -47,15 +49,15 @@ function lineStripIndexBuffer({ rows, cols }: { rows: number, cols: number }): n
   }
 
   // bottom row, left to right
-  for (let j = 0; j < vertexCols; j++) {
+  for (let j = 1; j < vertexCols; j++) {
     indices.push((rows * vertexCols) + j);
   }
 
-  return indices;
+  return new Uint16Array(indices);
 }
 
 function lineStripNumIndices({ rows, cols }: { rows: number, cols: number }): number {
-  return (rows * (cols + 1)) + (cols * (rows + 1)) + (rows * cols);
+  return 1 + (rows * (cols + 1)) + (cols * (rows + 1)) + (rows * cols);
 }
 
 function mesh2DVertexBuffer(
@@ -67,7 +69,7 @@ function mesh2DVertexBuffer(
     width: number,
     height: number,
   }
-): number[] {
+): Float32Array {
   const vertices = [];
 
   const xStep = width / cols;
@@ -80,12 +82,39 @@ function mesh2DVertexBuffer(
     }
   }
 
-  return vertices;
+  return new Float32Array(vertices);
 }
 
 
-function mesh2DNumVertices({ rows, cols }: { rows: number, cols: number }): number {
+function meshNumVertices({ rows, cols }: { rows: number, cols: number }): number {
   return (rows + 1) * (cols + 1);
+}
+
+function mesh3DVertexBuffer(
+  { rows, cols, x, y, z, width, depth }: {
+    rows: number,
+    cols: number,
+    x: number,
+    y: number,
+    z: number,
+    width: number,
+    depth: number,
+  }
+): Float32Array {
+  const vertices = [];
+
+  const xStep = width / cols;
+  const zStep = depth / rows;
+
+  for (let i = 0; i <= rows; i++) {
+    for (let j = 0; j <= cols; j++) {
+      vertices.push((j * xStep) + x);
+      vertices.push(y);
+      vertices.push((i * zStep) + z);
+    }
+  }
+
+  return new Float32Array(vertices);
 }
 
 type Mesh2DProps = {
@@ -97,35 +126,64 @@ type Mesh2DProps = {
   height: number,
 };
 
+class Mesh<P extends { rows: number, cols: number }> {
+  protected readonly props: P;
 
-export class Mesh2D {
-  private readonly props: Mesh2DProps;
-
-  public constructor(props: Mesh2DProps) {
+  public constructor(props: P) {
     this.props = props;
   }
 
-  triangleIndexBuffer(): number[] {
-    return triangleIndexBuffer({ rows: this.props.rows, cols: this.props.cols });
+  public triangleIndexBuffer(): Uint16Array {
+    return triangleIndexBuffer(this.props);
   }
 
-  triangleNumIndices(): number {
-    return triangleNumIndices({ rows: this.props.rows, cols: this.props.cols });
+  public triangleNumIndices(): number {
+    return triangleNumIndices(this.props);
   }
 
-  lineStripIndexBuffer(): number[] {
-    return lineStripIndexBuffer({ rows: this.props.rows, cols: this.props.cols });
+  public lineStripIndexBuffer(): Uint16Array {
+    return lineStripIndexBuffer(this.props);
   }
 
-  lineStripNumIndices(): number {
-    return lineStripNumIndices({ rows: this.props.rows, cols: this.props.cols });
+  public lineStripNumIndices(): number {
+    return lineStripNumIndices(this.props);
   }
 
-  vertexBuffer(): number[] {
+  public numVertices(): number {
+    return meshNumVertices(this.props);
+  }
+
+}
+
+export class Mesh2D extends Mesh<Mesh2DProps> {
+
+  public constructor(props: Mesh2DProps) {
+    super(props);
+  }
+
+  vertexBuffer(): Float32Array {
     return mesh2DVertexBuffer(this.props);
   }
+}
 
-  numVertices(): number {
-    return mesh2DNumVertices({ rows: this.props.rows, cols: this.props.cols });
+type Mesh3DProps = {
+  rows: number,
+  cols: number,
+  x: number,
+  y: number,
+  z: number,
+  width: number,
+  depth: number,
+};
+
+export class Mesh3D {
+  private readonly props: Mesh3DProps;
+
+  public constructor(props: Mesh3DProps) {
+    this.props = props;
+  }
+
+  vertexBuffer(): Float32Array {
+    return mesh3DVertexBuffer(this.props);
   }
 }
