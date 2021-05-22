@@ -6,6 +6,9 @@ Start the typescript compiler in watch mode:
 npx webpack -w
 ```
 
-This will make a file named "index.js".
+This will make a directory named "dist" containing a static webpage that runs the app.
 
-Then run a static web server from the top level (e.g. `python -m http.server`).
+Example command to serve:
+```
+python -m http.server -d dist
+```

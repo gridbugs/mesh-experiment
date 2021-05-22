@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/stevebob/mesh-experiment#readme",
   "devDependencies": {
+    "html-webpack-plugin": "^5.3.1",
     "ts-loader": "^9.1.2",
     "typescript": "^4.2.4",
     "webpack": "^5.37.0",
