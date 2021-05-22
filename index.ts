@@ -102,7 +102,12 @@ window.onload = () => {
     const colourAttributeLocation = gl.getAttribLocation(shaderProgram, 'a_colour');
     const colourBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, colourBuffer);
-    const colours = new Float32Array(Array.apply(null, Array(mesh.numVertices())).flatMap((_: any) => [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]));
+    const colours = new Float32Array(Array.apply(null, Array(mesh.numVertices())).flatMap((_: any) => {
+      const r = Math.random();
+      const g = Math.random();
+      const b = Math.random();
+      return [r, g, b];
+    }));
     gl.bufferData(gl.ARRAY_BUFFER, colours, gl.STATIC_DRAW);
     gl.enableVertexAttribArray(colourAttributeLocation);
     gl.vertexAttribPointer(colourAttributeLocation, 3, gl.FLOAT, false, 0, 0);
