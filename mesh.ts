@@ -8,13 +8,13 @@ function triangleIndexBuffer({ rows, cols }: { rows: number, cols: number }): Ui
 
       // first triangle
       indices.push(topLeft);
-      indices.push(topLeft + 1);
       indices.push(topLeft + vertexCols + 1);
+      indices.push(topLeft + 1);
 
       // second triangle
       indices.push(topLeft);
-      indices.push(topLeft + vertexCols + 1);
       indices.push(topLeft + vertexCols);
+      indices.push(topLeft + vertexCols + 1);
     }
   }
 
@@ -90,26 +90,27 @@ function meshNumVertices({ rows, cols }: { rows: number, cols: number }): number
   return (rows + 1) * (cols + 1);
 }
 
-function mesh3DVertexBuffer(
-  { rows, cols, x, y, z, width, depth }: {
+function mesh3DYPlaneVertexBuffer(
+  { rows, cols, x, y, z, width, height }: {
     rows: number,
     cols: number,
     x: number,
     y: number,
     z: number,
     width: number,
-    depth: number,
+    height: number,
   }
 ): Float32Array {
   const vertices = [];
 
   const xStep = width / cols;
-  const zStep = depth / rows;
+  const zStep = height / rows;
 
   for (let i = 0; i <= rows; i++) {
     for (let j = 0; j <= cols; j++) {
+      const perturbedY = y + (Math.random() - 0.5) * 0.1;
       vertices.push((j * xStep) + x);
-      vertices.push(y);
+      vertices.push(perturbedY);
       vertices.push((i * zStep) + z);
     }
   }
@@ -173,17 +174,16 @@ type Mesh3DProps = {
   y: number,
   z: number,
   width: number,
-  depth: number,
+  height: number,
 };
 
-export class Mesh3D {
-  private readonly props: Mesh3DProps;
+export class Mesh3D extends Mesh<Mesh3DProps> {
 
   public constructor(props: Mesh3DProps) {
-    this.props = props;
+    super(props);
   }
 
-  vertexBuffer(): Float32Array {
-    return mesh3DVertexBuffer(this.props);
+  yPlaneVertexBuffer(): Float32Array {
+    return mesh3DYPlaneVertexBuffer(this.props);
   }
 }

@@ -23,37 +23,37 @@ function matrix44Multiply(out: Float32Array, a: Float32Array, b: Float32Array): 
   let b1 = b[1];
   let b2 = b[2];
   let b3 = b[3];
-  out[0] = (a00 * b0) + (a01 * b1) + (a02 * b2) * (a03 * b3);
-  out[1] = (a10 * b0) + (a11 * b1) + (a12 * b2) * (a13 * b3);
-  out[2] = (a20 * b0) + (a21 * b1) + (a22 * b2) * (a23 * b3);
-  out[3] = (a30 * b0) + (a31 * b1) + (a32 * b2) * (a33 * b3);
+  out[0] = (a00 * b0) + (a01 * b1) + (a02 * b2) + (a03 * b3);
+  out[1] = (a10 * b0) + (a11 * b1) + (a12 * b2) + (a13 * b3);
+  out[2] = (a20 * b0) + (a21 * b1) + (a22 * b2) + (a23 * b3);
+  out[3] = (a30 * b0) + (a31 * b1) + (a32 * b2) + (a33 * b3);
 
   b0 = b[4];
   b1 = b[5];
-  b2 = b[5];
+  b2 = b[6];
   b3 = b[7];
-  out[4] = (a00 * b0) + (a01 * b1) + (a02 * b2) * (a03 * b3);
-  out[5] = (a10 * b0) + (a11 * b1) + (a12 * b2) * (a13 * b3);
-  out[6] = (a20 * b0) + (a21 * b1) + (a22 * b2) * (a23 * b3);
-  out[7] = (a30 * b0) + (a31 * b1) + (a32 * b2) * (a33 * b3);
+  out[4] = (a00 * b0) + (a01 * b1) + (a02 * b2) + (a03 * b3);
+  out[5] = (a10 * b0) + (a11 * b1) + (a12 * b2) + (a13 * b3);
+  out[6] = (a20 * b0) + (a21 * b1) + (a22 * b2) + (a23 * b3);
+  out[7] = (a30 * b0) + (a31 * b1) + (a32 * b2) + (a33 * b3);
 
   b0 = b[8];
   b1 = b[9];
   b2 = b[10];
   b3 = b[11];
-  out[8] = (a00 * b0) + (a01 * b1) + (a02 * b2) * (a03 * b3);
-  out[9] = (a10 * b0) + (a11 * b1) + (a12 * b2) * (a13 * b3);
-  out[10] = (a20 * b0) + (a21 * b1) + (a22 * b2) * (a23 * b3);
-  out[11] = (a30 * b0) + (a31 * b1) + (a32 * b2) * (a33 * b3);
+  out[8] = (a00 * b0) + (a01 * b1) + (a02 * b2) + (a03 * b3);
+  out[9] = (a10 * b0) + (a11 * b1) + (a12 * b2) + (a13 * b3);
+  out[10] = (a20 * b0) + (a21 * b1) + (a22 * b2) + (a23 * b3);
+  out[11] = (a30 * b0) + (a31 * b1) + (a32 * b2) + (a33 * b3);
 
   b0 = b[12];
   b1 = b[13];
   b2 = b[14];
   b3 = b[15];
-  out[12] = (a00 * b0) + (a01 * b1) + (a02 * b2) * (a03 * b3);
-  out[13] = (a10 * b0) + (a11 * b1) + (a12 * b2) * (a13 * b3);
-  out[14] = (a20 * b0) + (a21 * b1) + (a22 * b2) * (a23 * b3);
-  out[15] = (a30 * b0) + (a31 * b1) + (a32 * b2) * (a33 * b3);
+  out[12] = (a00 * b0) + (a01 * b1) + (a02 * b2) + (a03 * b3);
+  out[13] = (a10 * b0) + (a11 * b1) + (a12 * b2) + (a13 * b3);
+  out[14] = (a20 * b0) + (a21 * b1) + (a22 * b2) + (a23 * b3);
+  out[15] = (a30 * b0) + (a31 * b1) + (a32 * b2) + (a33 * b3);
 }
 
 function matrix44Identity(out: Float32Array): void {
@@ -73,7 +73,6 @@ function matrix44Identity(out: Float32Array): void {
   out[13] = 0;
   out[14] = 0;
   out[15] = 1;
-
 }
 
 function matrix44Translation(out: Float32Array, dx: number, dy: number, dz: number): void {
@@ -106,8 +105,8 @@ function matrix44Scale(out: Float32Array, sx: number, sy: number, sz: number): v
   out[7] = 0;
   out[8] = 0;
   out[9] = 0;
-  out[10] = 0;
-  out[11] = sz;
+  out[10] = sz;
+  out[11] = 0;
   out[12] = 0;
   out[13] = 0;
   out[14] = 0;
@@ -144,6 +143,69 @@ function matrix44Align(out: Float32Array, a: Float32Array, b: Float32Array): voi
   out[8] = (axisX * axisZ * k) - axisY;
   out[9] = (axisY * axisZ * k) + axisX;
   out[10] = (axisZ * axisZ * k) + cos;
+  out[11] = 0;
+  out[12] = 0;
+  out[13] = 0;
+  out[14] = 0;
+  out[15] = 1;
+}
+
+function matrix44RotateX(out: Float32Array, radians: number): void {
+  const s = Math.sin(radians);
+  const c = Math.cos(radians);
+  out[0] = 1;
+  out[1] = 0;
+  out[2] = 0;
+  out[3] = 0;
+  out[4] = 0;
+  out[5] = c;
+  out[6] = s;
+  out[7] = 0;
+  out[8] = 0;
+  out[9] = -s;
+  out[10] = c;
+  out[11] = 0;
+  out[12] = 0;
+  out[13] = 0;
+  out[14] = 0;
+  out[15] = 1;
+}
+
+function matrix44RotateY(out: Float32Array, radians: number): void {
+  const s = Math.sin(radians);
+  const c = Math.cos(radians);
+  out[0] = c;
+  out[1] = 0;
+  out[2] = -s;
+  out[3] = 0;
+  out[4] = 0;
+  out[5] = 1;
+  out[6] = 0;
+  out[7] = 0;
+  out[8] = s;
+  out[9] = 0;
+  out[10] = c;
+  out[11] = 0;
+  out[12] = 0;
+  out[13] = 0;
+  out[14] = 0;
+  out[15] = 1;
+}
+
+function matrix44RotateZ(out: Float32Array, radians: number): void {
+  const s = Math.sin(radians);
+  const c = Math.cos(radians);
+  out[0] = c;
+  out[1] = s;
+  out[2] = 0;
+  out[3] = 0;
+  out[4] = -s;
+  out[5] = c;
+  out[6] = 0;
+  out[7] = 0;
+  out[8] = 0;
+  out[9] = 0;
+  out[10] = 1;
   out[11] = 0;
   out[12] = 0;
   out[13] = 0;
@@ -222,6 +284,21 @@ export class Matrix44 {
     return this;
   }
 
+  public setRotateX(radians: number): Matrix44 {
+    matrix44RotateX(this.data, radians);
+    return this;
+  }
+
+  public setRotateY(radians: number): Matrix44 {
+    matrix44RotateY(this.data, radians);
+    return this;
+  }
+
+  public setRotateZ(radians: number): Matrix44 {
+    matrix44RotateZ(this.data, radians);
+    return this;
+  }
+
   public setProject(fovyRadians: number, aspect: number, near: number, far: number): Matrix44 {
     matrix44Project(this.data, fovyRadians, aspect, near, far);
     return this;
@@ -230,6 +307,13 @@ export class Matrix44 {
   public setMultiply(lhs: Matrix44, rhs: Matrix44): Matrix44 {
     matrix44Multiply(this.data, lhs.data, rhs.data);
     return this;
+  }
+
+  public pretty(): string {
+    return `${this.data[0]} ${this.data[4]} ${this.data[8]} ${this.data[12]}
+${this.data[1]} ${this.data[5]} ${this.data[9]} ${this.data[13]}
+${this.data[2]} ${this.data[6]} ${this.data[10]} ${this.data[14]}
+${this.data[3]} ${this.data[7]} ${this.data[11]} ${this.data[15]}`;
   }
 }
 
@@ -268,6 +352,13 @@ export class Vector3 {
   }
 
   public setZ(z: number): Vector3 {
+    this.data[2] = z;
+    return this;
+  }
+
+  public set(x: number, y: number, z: number): Vector3 {
+    this.data[0] = x;
+    this.data[1] = y;
     this.data[2] = z;
     return this;
   }
@@ -335,6 +426,14 @@ export class Vector4 {
     return this;
   }
 
+  public set(x: number, y: number, z: number, w: number): Vector4 {
+    this.data[0] = x;
+    this.data[1] = y;
+    this.data[2] = z;
+    this.data[3] = w;
+    return this;
+  }
+
   public setHomogenousFromVector3(vector3: Vector3): Vector4 {
     this.setX(vector3.x());
     this.setY(vector3.y());
@@ -347,4 +446,8 @@ export class Vector4 {
     vector4MultiplyMatrix44(this.data, matrix44.data, vector4.data);
     return this;
   }
+}
+
+export function deg2rad(degrees: number): number {
+  return (degrees * Math.PI) / 180;
 }
