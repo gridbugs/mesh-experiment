@@ -1,3 +1,5 @@
+import { PerlinNoise2D } from './perlin_noise_2d';
+
 function triangleIndexBuffer({ rows, cols }: { rows: number, cols: number }): Uint16Array {
   const indices = [];
   const vertexCols = cols + 1;
@@ -99,16 +101,18 @@ function mesh3DYPlaneVertexBuffer(
     z: number,
     width: number,
     height: number,
-  }
+  },
+  perlin: PerlinNoise2D,
 ): Float32Array {
   const vertices = [];
 
   const xStep = width / cols;
   const zStep = height / rows;
+  const noiseZoom = 20;
 
   for (let i = 0; i <= rows; i++) {
     for (let j = 0; j <= cols; j++) {
-      const perturbedY = y + (Math.random() - 0.5) * 0.1;
+      const perturbedY = y + perlin.noise(j / noiseZoom, i / noiseZoom);
       vertices.push((j * xStep) + x);
       vertices.push(perturbedY);
       vertices.push((i * zStep) + z);
@@ -154,6 +158,13 @@ class Mesh<P extends { rows: number, cols: number }> {
     return meshNumVertices(this.props);
   }
 
+  public numVertexRows(): number {
+    return this.props.rows;
+  }
+
+  public numVertexCols(): number {
+    return this.props.cols;
+  }
 }
 
 export class Mesh2D extends Mesh<Mesh2DProps> {
@@ -183,7 +194,7 @@ export class Mesh3D extends Mesh<Mesh3DProps> {
     super(props);
   }
 
-  yPlaneVertexBuffer(): Float32Array {
-    return mesh3DYPlaneVertexBuffer(this.props);
+  yPlaneVertexBuffer(perlin: PerlinNoise2D): Float32Array {
+    return mesh3DYPlaneVertexBuffer(this.props, perlin);
   }
 }
