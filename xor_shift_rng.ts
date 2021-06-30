@@ -48,6 +48,6 @@ export class XorShiftRng {
   }
 
   public clone(): XorShiftRng {
-    return XorShiftRng.withSeed(this.state);
+    return new XorShiftRng(this.state);
   }
 }
