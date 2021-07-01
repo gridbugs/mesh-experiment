@@ -110,18 +110,21 @@ function runDemo() {
     const heightNoiseZoom = 20;
     const colourNoiseZoom = 10;
     const snowLineZoom = 2;
+    const snowZoom = 15;
     for (let i = 0; i < mesh.numVertexRows(); i++) {
       for (let j = 0; j < mesh.numVertexCols(); j++) {
-        const height = (1 + perlin.noise(j / heightNoiseZoom, i / heightNoiseZoom)) / 2;
-        const noiseR = (1 + perlin.noise(42134 + j / colourNoiseZoom, 342452 + i / colourNoiseZoom)) / 2;
-        const noiseG = (1 + perlin.noise(j / colourNoiseZoom, i / colourNoiseZoom)) / 2;
-        const noiseB = (1 + perlin.noise(23423 + j / colourNoiseZoom, 4242341 + i / colourNoiseZoom)) / 2;
-        const noiseSnow = perlin.noise(9980980 + j / snowLineZoom, 76876 + i / snowLineZoom)
+        const height = perlin.noise01(j / heightNoiseZoom, i / heightNoiseZoom);
+        const noiseR = perlin.noise01(42134 + j / colourNoiseZoom, 342452 + i / colourNoiseZoom);
+        const noiseG = perlin.noise01(j / colourNoiseZoom, i / colourNoiseZoom);
+        const noiseB = perlin.noise01(23423 + j / colourNoiseZoom, 4242341 + i / colourNoiseZoom);
+        const noiseSnowLine = perlin.noise(9980980 + j / snowLineZoom, 76876 + i / snowLineZoom);
+        const noiseSnow1 = perlin.noise01(74533 + j / snowZoom, 56452 + i / snowZoom);
+        const noiseSnow2 = perlin.noise01(897987 + j / snowZoom, 342342 + i / snowZoom);
         const base = 3 * (i * mesh.numVertexCols() + j);
-        if (height > (0.6 + noiseSnow * 0.1)) {
-          colours[base + 0] = 1;
-          colours[base + 1] = 1;
-          colours[base + 2] = 1;
+        if (height > (0.6 + noiseSnowLine * 0.1)) {
+          colours[base + 0] = 0.7 + noiseSnow1 * 0.1;
+          colours[base + 1] = 0.7 + noiseSnow1 * 0.1;
+          colours[base + 2] = 0.8 + noiseSnow2 * 0.2;
         } else {
           colours[base + 0] = 0.1 + noiseR * 0.4;
           colours[base + 1] = 0.2 + noiseG * 0.5;

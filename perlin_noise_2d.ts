@@ -70,4 +70,8 @@ export class PerlinNoise2D {
 
     return ret;
   }
+
+  public noise01(x: number, y: number): number {
+    return (1 + this.noise(x, y)) / 2;
+  }
 }
