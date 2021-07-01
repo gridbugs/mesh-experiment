@@ -87,8 +87,8 @@ function runDemo() {
     const perlin = new PerlinNoise2D(XorShiftRng.withRandomSeed());
 
     const mesh = new Mesh3D({
-      cols: 100,
-      rows: 100,
+      cols: 200,
+      rows: 200,
       x: -0.5,
       y: 0,
       z: -0.5,
@@ -107,24 +107,30 @@ function runDemo() {
     const colourBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, colourBuffer);
     const colours = new Float32Array(mesh.numVertices() * 3);
-    const heightNoiseZoom = 30;
+    const heightNoiseZoom = 20;
+    const colourNoiseZoom = 10;
+    const snowLineZoom = 2;
     for (let i = 0; i < mesh.numVertexRows(); i++) {
       for (let j = 0; j < mesh.numVertexCols(); j++) {
         const height = (1 + perlin.noise(j / heightNoiseZoom, i / heightNoiseZoom)) / 2;
+        const noiseR = (1 + perlin.noise(42134 + j / colourNoiseZoom, 342452 + i / colourNoiseZoom)) / 2;
+        const noiseG = (1 + perlin.noise(j / colourNoiseZoom, i / colourNoiseZoom)) / 2;
+        const noiseB = (1 + perlin.noise(23423 + j / colourNoiseZoom, 4242341 + i / colourNoiseZoom)) / 2;
+        const noiseSnow = perlin.noise(9980980 + j / snowLineZoom, 76876 + i / snowLineZoom)
         const base = 3 * (i * mesh.numVertexCols() + j);
-        colours[base + 0] = 0;
-        colours[base + 1] = j / mesh.numVertexCols();
-        colours[base + 2] = 0;
+        if (height > (0.6 + noiseSnow * 0.1)) {
+          colours[base + 0] = 1;
+          colours[base + 1] = 1;
+          colours[base + 2] = 1;
+        } else {
+          colours[base + 0] = 0.1 + noiseR * 0.4;
+          colours[base + 1] = 0.2 + noiseG * 0.5;
+          colours[base + 2] = noiseB * 0.2;
+        }
       }
     }
 
-    const colours_ = new Float32Array(Array.apply(null, Array(mesh.numVertices())).flatMap((_: any) => {
-      const r = Math.random();
-      const g = Math.random();
-      const b = Math.random();
-      return [r, g, b];
-    }));
-    gl.bufferData(gl.ARRAY_BUFFER, colours_, gl.STATIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, colours, gl.STATIC_DRAW);
     gl.enableVertexAttribArray(colourAttributeLocation);
     gl.vertexAttribPointer(colourAttributeLocation, 3, gl.FLOAT, false, 0, 0);
 
@@ -151,12 +157,10 @@ function runDemo() {
 
     let count = 0;
 
-    const intrinsic = new Matrix44().setProject(deg2rad(90), 1, 0.1, 2000);
+    const intrinsic = new Matrix44().setProject(deg2rad(90), 1, 0.1, 10000);
     const extrinsic = new Matrix44();
     const translate = new Matrix44().setIdentity();
-    translate.setMultiply(translate, new Matrix44().setTranslation(0, -10, 20));
-    translate.setMultiply(translate, new Matrix44().setRotateX(deg2rad(20)));
-    translate.setMultiply(translate, new Matrix44().setScale(1000, 200, 1000));
+    translate.setMultiply(translate, new Matrix44().setScale(4000, 500, 4000));
     const rotate = new Matrix44();
 
     const transform = new Matrix44();
@@ -167,7 +171,7 @@ function runDemo() {
 
     function draw() {
       extrinsic.setMultiply(translate, rotate.setRotateY(deg2rad(count * 0.1)))
-        .setMultiply(rotate.setTranslation(0, 0, -700), extrinsic);
+        .setMultiply(rotate.setTranslation(0, -160, 0), extrinsic);
       transform.setMultiply(intrinsic, extrinsic);
 
       gl.uniformMatrix4fv(transformUniformLocation, false, transform.data);
@@ -182,39 +186,6 @@ function runDemo() {
     }
 
     draw();
-  }
-}
-
-function perlinTest() {
-  const perlin = new PerlinNoise2D(XorShiftRng.withSeed(42));
-
-  const canvas = document.querySelector('#c');
-  if (canvas instanceof HTMLCanvasElement) {
-    const maybeCtx = canvas.getContext('2d');
-    if (maybeCtx === null) {
-      throw new Error("failed to create 2d context");
-    }
-    const ctx: CanvasRenderingContext2D = maybeCtx;
-
-    let offsetY = 0;
-    const speed = 1;
-    const zoom = 40;
-    const cellSize = 4;
-    const canvasWidth = canvas.width;
-    const canvasHeight = canvas.height;
-
-    function tick() {
-      for (let i = 0; i < canvasHeight / cellSize; i++) {
-        for (let j = 0; j < canvasWidth / cellSize; j++) {
-          const x: number = (255 * (1 + perlin.noise(j / (zoom / cellSize), (i + offsetY) / (zoom / cellSize)))) / 2;
-          ctx.fillStyle = `rgb(${x},${x},${x})`;
-          ctx.fillRect(j * cellSize, i * cellSize, cellSize, cellSize);
-        }
-      }
-      offsetY += speed;
-      requestAnimationFrame(tick);
-    }
-    tick();
   }
 }
 

@@ -159,11 +159,11 @@ class Mesh<P extends { rows: number, cols: number }> {
   }
 
   public numVertexRows(): number {
-    return this.props.rows;
+    return this.props.rows + 1;
   }
 
   public numVertexCols(): number {
-    return this.props.cols;
+    return this.props.cols + 1;
   }
 }
 
