@@ -207,7 +207,7 @@ function perlinTest() {
 
     let delta = 0;
     const speed = 1;
-    const cellSize = 4;
+    const cellSize = 1;
     const canvasWidth = canvas.width;
     const canvasHeight = canvas.height;
 
