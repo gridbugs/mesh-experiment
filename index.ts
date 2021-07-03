@@ -179,7 +179,7 @@ function runDemo() {
 
       gl.uniformMatrix4fv(transformUniformLocation, false, transform.data);
 
-      gl.clearColor(0, 0, 0, 1);
+      gl.clearColor(0, 0, 0, 0);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
       //gl.drawElements(gl.LINE_STRIP, mesh.lineStripNumIndices(), gl.UNSIGNED_SHORT, 0);
       gl.drawElements(gl.TRIANGLES, mesh.triangleNumIndices(), gl.UNSIGNED_SHORT, 0);
@@ -192,4 +192,88 @@ function runDemo() {
   }
 }
 
-window.onload = runDemo;
+function perlinTest() {
+  const perlin = new PerlinNoise2D(XorShiftRng.withRandomSeed());
+
+  const canvas = document.querySelector('#c_');
+  if (canvas instanceof HTMLCanvasElement) {
+    const maybeCtx = canvas.getContext('2d');
+    if (maybeCtx === null) {
+      throw new Error("failed to create 2d context");
+    }
+    const ctx: CanvasRenderingContext2D = maybeCtx;
+    ctx.fillStyle = `rgb(${255*(0.3 + 0.7*0.4)},${255*(0.5*0.4 + 0.5)},${255})`;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    let delta = 0;
+    const speed = 1;
+    const cellSize = 4;
+    const canvasWidth = canvas.width;
+    const canvasHeight = canvas.height;
+
+    const pxWidth =  canvasWidth / cellSize;
+    const pxHeight =  canvasHeight / cellSize;
+
+    function tick() {
+      for (let i = 0; i < pxHeight / 2; i++) {
+        for (let j = 0; j < pxWidth; j++) {
+          const x = ((j / pxWidth) * 2) - 1;
+          const y = 1 - ((i / pxHeight) * 2);
+
+          const screenCoord = {x, y};
+
+          const wind = scale(0.5, {x: 1, y: 1});
+          const horizDrop = 0.0;
+          const rot = -0.1;
+          const sampleCoordHighCloud = scale(0.05, translate(scale(2 * delta, wind), rotate(deg2rad(rot * delta),  sky(1, 100, horizDrop, screenCoord))));
+          const sampleCoordLowCloud = scale(0.04, translate(scale(2 * delta, wind), rotate(deg2rad(rot * delta), sky(1, 40, horizDrop, screenCoord))));
+          const sampleCoordVeryLowCloud = scale(0.02, translate(scale(2 * delta, wind), rotate(deg2rad(rot * delta), sky(1, 10, horizDrop, screenCoord))));
+
+          const noiseHighCloud = perlin.noise01(sampleCoordHighCloud.x, sampleCoordHighCloud.y);
+          const noiseLowCloud = perlin.noise01(sampleCoordLowCloud.x, sampleCoordLowCloud.y);
+          const noiseVeryLowCloud = perlin.noise(sampleCoordVeryLowCloud.x, sampleCoordVeryLowCloud.y);
+
+          const n = Math.min(0.9 * Math.pow(noiseHighCloud, 6) + 1.2 * Math.pow(noiseLowCloud, 1) + 0.6 * Math.pow(noiseVeryLowCloud, 1));
+          const c: number = n * Math.pow(y, 0.6) + (1 - Math.pow(y, 0.3)) * 0.5;
+          ctx.fillStyle = `rgb(${255*(0.3 + 0.7*c)},${255*(c*0.5 + 0.5)},${255})`;
+          ctx.fillRect(j * cellSize, i * cellSize, cellSize, cellSize);
+        }
+      }
+
+      delta += speed;
+      requestAnimationFrame(tick);
+    }
+    tick();
+  }
+}
+
+type Coord2D = {x: number, y: number};
+
+function translate(by: Coord2D, {x, y}: Coord2D): Coord2D {
+  return {x: x + by.x, y: y + by.y };
+}
+
+function scale(by: number, {x, y}: Coord2D): Coord2D {
+  return {x: x * by, y: y * by};
+}
+
+function rotate(byRadians: number, {x, y}: Coord2D): Coord2D {
+  const currentAngleRadians = Math.atan2(y, x);
+  const distance = Math.sqrt((x * x) + (y * y));
+  const newAngleRadians = currentAngleRadians + byRadians;
+  const rotX = distance * Math.cos(newAngleRadians);
+  const rotY = distance * Math.sin(newAngleRadians);
+  return {x: rotX, y: rotY};
+}
+
+function sky(focalLength: number, skyHeight: number, horizDrop: number, {x, y}: Coord2D): Coord2D {
+  const fakeY = y + horizDrop;
+  const skyX = (x * skyHeight) / fakeY;
+  const skyY = (skyHeight * focalLength) / fakeY;
+  return {x: skyX,  y: skyY};
+}
+
+window.onload = () => {
+  perlinTest();
+  runDemo();
+}
