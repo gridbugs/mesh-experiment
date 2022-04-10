@@ -18,7 +18,6 @@ function matrix44Multiply(out: Float32Array, a: Float32Array, b: Float32Array): 
   const a23 = a[14];
   const a33 = a[15];
 
-
   let b0 = b[0];
   let b1 = b[1];
   let b2 = b[2];
@@ -230,7 +229,7 @@ function matrix44Project(out: Float32Array, fovyRadians: number, aspect: number,
   out[11] = -1;
   out[12] = 0;
   out[13] = 0;
-  out[14] = 2 * far * near * nf;;
+  out[14] = 2 * far * near * nf;
   out[15] = 0;
 }
 
@@ -245,14 +244,25 @@ function vector4MultiplyMatrix44(outVector: Float32Array, lhsMatrix: Float32Arra
   const rhsVector1 = rhsVector[1];
   const rhsVector2 = rhsVector[2];
   const rhsVector3 = rhsVector[3];
-  outVector[0] = (lhsMatrix[0] * rhsVector0) + (lhsMatrix[4] * rhsVector1) + (lhsMatrix[8] * rhsVector2) + (lhsMatrix[12] * rhsVector3);
-  outVector[1] = (lhsMatrix[1] * rhsVector0) + (lhsMatrix[5] * rhsVector1) + (lhsMatrix[9] * rhsVector2) + (lhsMatrix[13] * rhsVector3);
-  outVector[2] = (lhsMatrix[2] * rhsVector0) + (lhsMatrix[6] * rhsVector1) + (lhsMatrix[10] * rhsVector2) + (lhsMatrix[14] * rhsVector3);
-  outVector[3] = (lhsMatrix[3] * rhsVector0) + (lhsMatrix[7] * rhsVector1) + (lhsMatrix[11] * rhsVector2) + (lhsMatrix[15] * rhsVector3);
+  outVector[0] = (lhsMatrix[0] * rhsVector0)
+    + (lhsMatrix[4] * rhsVector1)
+    + (lhsMatrix[8] * rhsVector2)
+    + (lhsMatrix[12] * rhsVector3);
+  outVector[1] = (lhsMatrix[1] * rhsVector0)
+    + (lhsMatrix[5] * rhsVector1)
+    + (lhsMatrix[9] * rhsVector2)
+    + (lhsMatrix[13] * rhsVector3);
+  outVector[2] = (lhsMatrix[2] * rhsVector0)
+    + (lhsMatrix[6] * rhsVector1)
+    + (lhsMatrix[10] * rhsVector2)
+    + (lhsMatrix[14] * rhsVector3);
+  outVector[3] = (lhsMatrix[3] * rhsVector0)
+    + (lhsMatrix[7] * rhsVector1)
+    + (lhsMatrix[11] * rhsVector2)
+    + (lhsMatrix[15] * rhsVector3);
 }
 
 export class Matrix44 {
-
   public readonly data: Float32Array;
 
   public constructor() {
@@ -280,7 +290,7 @@ export class Matrix44 {
   }
 
   public setAlign(unitVectorToAlign: Vector3, unitVectorToAlignTo: Vector3): Matrix44 {
-    matrix44Align(this.data, unitVectorToAlign.data,  unitVectorToAlignTo.data);
+    matrix44Align(this.data, unitVectorToAlign.data, unitVectorToAlignTo.data);
     return this;
   }
 
@@ -318,7 +328,6 @@ ${this.data[3]} ${this.data[7]} ${this.data[11]} ${this.data[15]}`;
 }
 
 export class Vector3 {
-
   public readonly data: Float32Array;
 
   public constructor(x: number, y: number, z: number) {
@@ -378,7 +387,6 @@ export class Vector3 {
 }
 
 export class Vector4 {
-
   public readonly data: Float32Array;
 
   public constructor(x: number, y: number, z: number, w: number) {

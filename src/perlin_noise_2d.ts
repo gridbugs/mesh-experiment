@@ -24,17 +24,20 @@ function smootherstep(w: number): number {
 }
 
 function gradientDotWeighted(offsetX: number, offsetY: number, gradientX: number, gradientY: number): number {
-  return smootherstep(Math.abs(1 - Math.abs(offsetX))) * smootherstep(1 - Math.abs(offsetY)) * ((gradientX * offsetX) + (gradientY * offsetY));
+  return smootherstep(Math.abs(1 - Math.abs(offsetX)))
+    * smootherstep(1 - Math.abs(offsetY))
+    * ((gradientX * offsetX) + (gradientY * offsetY));
 }
 
 export class PerlinNoise2D {
   private readonly gradX: Float32Array;
+
   private readonly gradY: Float32Array;
 
   public constructor(rng: XorShiftRng) {
     this.gradX = new Float32Array(256);
     this.gradY = new Float32Array(256);
-    for (let i = 0; i < 256; i++) {
+    for (let i = 0; i < 256; i += 1) {
       const angle = (Math.PI * 2 * i) / 256;
       this.gradX[i] = Math.cos(angle);
       this.gradY[i] = Math.sin(angle);
@@ -50,23 +53,44 @@ export class PerlinNoise2D {
     const rightX = leftX + 1;
     const topY = Math.floor(y);
     const bottomY = topY + 1;
-    let gradientIndexY, gradientIndex;
+    let gradientIndexY; let
+      gradientIndex;
 
     gradientIndexY = PERMUTATION_TABLE[topY & 0xFF]; // top
 
     gradientIndex = PERMUTATION_TABLE[(gradientIndexY + leftX) & 0xFF]; // top left
-    let ret = gradientDotWeighted(x - leftX, y - topY, this.gradX[gradientIndex], this.gradY[gradientIndex]);
+    let ret = gradientDotWeighted(
+      x - leftX,
+      y - topY,
+      this.gradX[gradientIndex],
+      this.gradY[gradientIndex],
+    );
 
     gradientIndex = PERMUTATION_TABLE[(gradientIndexY + rightX) & 0xFF]; // top right
-    ret += gradientDotWeighted(x - rightX, y - topY, this.gradX[gradientIndex], this.gradY[gradientIndex]);
+    ret += gradientDotWeighted(
+      x - rightX,
+      y - topY,
+      this.gradX[gradientIndex],
+      this.gradY[gradientIndex],
+    );
 
     gradientIndexY = PERMUTATION_TABLE[bottomY & 0xFF]; // bottom
 
     gradientIndex = PERMUTATION_TABLE[(gradientIndexY + leftX) & 0xFF]; // bottom left
-    ret += gradientDotWeighted(x - leftX, y - bottomY, this.gradX[gradientIndex], this.gradY[gradientIndex]);
+    ret += gradientDotWeighted(
+      x - leftX,
+      y - bottomY,
+      this.gradX[gradientIndex],
+      this.gradY[gradientIndex],
+    );
 
     gradientIndex = PERMUTATION_TABLE[(gradientIndexY + rightX) & 0xFF]; // bottom right
-    ret += gradientDotWeighted(x - rightX, y - bottomY, this.gradX[gradientIndex], this.gradY[gradientIndex]);
+    ret += gradientDotWeighted(
+      x - rightX,
+      y - bottomY,
+      this.gradX[gradientIndex],
+      this.gradY[gradientIndex],
+    );
 
     return ret;
   }

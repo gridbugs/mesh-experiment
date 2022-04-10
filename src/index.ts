@@ -1,12 +1,15 @@
+/* eslint-disable */
 import { Mesh3D } from './mesh';
-import { Matrix44, Vector3, Vector4, deg2rad } from './math';
+import {
+  Matrix44, Vector3, Vector4, deg2rad
+} from './math';
 import { XorShiftRng } from './xor_shift_rng';
 import { PerlinNoise2D } from './perlin_noise_2d';
 
 function createShader(gl: WebGL2RenderingContext, type: number, source: string): WebGLShader {
   const shader = gl.createShader(type);
   if (shader === null) {
-    throw new Error("failed to create shader");
+    throw new Error('failed to create shader');
   }
   gl.shaderSource(shader, source);
   gl.compileShader(shader);
@@ -15,7 +18,7 @@ function createShader(gl: WebGL2RenderingContext, type: number, source: string):
   }
   const message = gl.getShaderInfoLog(shader);
   gl.deleteShader(shader);
-  throw new Error("failed to compile shader: " + message);
+  throw new Error(`failed to compile shader: ${message}`);
 }
 
 function createShaderProgram(
@@ -27,7 +30,7 @@ function createShaderProgram(
 ): WebGLProgram {
   const shaderProgram = gl.createProgram();
   if (shaderProgram === null) {
-    throw new Error("failed to create shader program");
+    throw new Error('failed to create shader program');
   }
   gl.attachShader(shaderProgram, shaders.vertex);
   gl.attachShader(shaderProgram, shaders.fragment);
@@ -37,7 +40,7 @@ function createShaderProgram(
   }
   const message = gl.getProgramInfoLog(shaderProgram);
   gl.deleteProgram(shaderProgram);
-  throw new Error("failed to link program:" + message);
+  throw new Error(`failed to link program:${message}`);
 }
 
 function runDemo() {
@@ -45,7 +48,7 @@ function runDemo() {
   if (canvas instanceof HTMLCanvasElement) {
     const maybeGl = canvas.getContext('webgl2');
     if (maybeGl === null) {
-      throw new Error("failed to create webgl2 context");
+      throw new Error('failed to create webgl2 context');
     }
     const gl: WebGL2RenderingContext = maybeGl;
 
@@ -111,8 +114,8 @@ function runDemo() {
     const colourNoiseZoom = 10;
     const snowLineZoom = 2;
     const snowZoom = 15;
-    for (let i = 0; i < mesh.numVertexRows(); i++) {
-      for (let j = 0; j < mesh.numVertexCols(); j++) {
+    for (let i = 0; i < mesh.numVertexRows(); i += 1) {
+      for (let j = 0; j < mesh.numVertexCols(); j += 1) {
         const height = perlin.noise01(j / heightNoiseZoom, i / heightNoiseZoom);
         const noiseR = perlin.noise01(42134 + j / colourNoiseZoom, 342452 + i / colourNoiseZoom);
         const noiseG = perlin.noise01(j / colourNoiseZoom, i / colourNoiseZoom);
@@ -169,7 +172,6 @@ function runDemo() {
     const transform = new Matrix44();
     const transformUniformLocation = gl.getUniformLocation(shaderProgram, 'u_transform');
 
-
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
 
     function draw() {
@@ -199,10 +201,10 @@ function perlinTest() {
   if (canvas instanceof HTMLCanvasElement) {
     const maybeCtx = canvas.getContext('2d');
     if (maybeCtx === null) {
-      throw new Error("failed to create 2d context");
+      throw new Error('failed to create 2d context');
     }
     const ctx: CanvasRenderingContext2D = maybeCtx;
-    ctx.fillStyle = `rgb(${255*(0.3 + 0.7*0.4)},${255*(0.5*0.4 + 0.5)},${255})`;
+    ctx.fillStyle = `rgb(${255 * (0.3 + 0.7 * 0.4)},${255 * (0.5 * 0.4 + 0.5)},${255})`;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     let delta = 0;
@@ -211,21 +213,21 @@ function perlinTest() {
     const canvasWidth = canvas.width;
     const canvasHeight = canvas.height;
 
-    const pxWidth =  canvasWidth / cellSize;
-    const pxHeight =  canvasHeight / cellSize;
+    const pxWidth = canvasWidth / cellSize;
+    const pxHeight = canvasHeight / cellSize;
 
     function tick() {
-      for (let i = 0; i < pxHeight / 2; i++) {
-        for (let j = 0; j < pxWidth; j++) {
+      for (let i = 0; i < pxHeight / 2; i += 1) {
+        for (let j = 0; j < pxWidth; j += 1) {
           const x = ((j / pxWidth) * 2) - 1;
           const y = 1 - ((i / pxHeight) * 2);
 
-          const screenCoord = {x, y};
+          const screenCoord = { x, y };
 
-          const wind = scale(0.5, {x: 1, y: 1});
+          const wind = scale(0.5, { x: 1, y: 1 });
           const horizDrop = 0.0;
           const rot = -0.1;
-          const sampleCoordHighCloud = scale(0.05, translate(scale(2 * delta, wind), rotate(deg2rad(rot * delta),  sky(1, 100, horizDrop, screenCoord))));
+          const sampleCoordHighCloud = scale(0.05, translate(scale(2 * delta, wind), rotate(deg2rad(rot * delta), sky(1, 100, horizDrop, screenCoord))));
           const sampleCoordLowCloud = scale(0.04, translate(scale(2 * delta, wind), rotate(deg2rad(rot * delta), sky(1, 40, horizDrop, screenCoord))));
           const sampleCoordVeryLowCloud = scale(0.02, translate(scale(2 * delta, wind), rotate(deg2rad(rot * delta), sky(1, 10, horizDrop, screenCoord))));
 
@@ -235,7 +237,7 @@ function perlinTest() {
 
           const n = Math.min(0.9 * Math.pow(noiseHighCloud, 6) + 1.2 * Math.pow(noiseLowCloud, 1) + 0.6 * Math.pow(noiseVeryLowCloud, 1));
           const c: number = n * Math.pow(y, 0.6) + (1 - Math.pow(y, 0.3)) * 0.5;
-          ctx.fillStyle = `rgb(${255*(0.3 + 0.7*c)},${255*(c*0.5 + 0.5)},${255})`;
+          ctx.fillStyle = `rgb(${255 * (0.3 + 0.7 * c)},${255 * (c * 0.5 + 0.5)},${255})`;
           ctx.fillRect(j * cellSize, i * cellSize, cellSize, cellSize);
         }
       }
@@ -249,31 +251,31 @@ function perlinTest() {
 
 type Coord2D = {x: number, y: number};
 
-function translate(by: Coord2D, {x, y}: Coord2D): Coord2D {
-  return {x: x + by.x, y: y + by.y };
+function translate(by: Coord2D, { x, y }: Coord2D): Coord2D {
+  return { x: x + by.x, y: y + by.y };
 }
 
-function scale(by: number, {x, y}: Coord2D): Coord2D {
-  return {x: x * by, y: y * by};
+function scale(by: number, { x, y }: Coord2D): Coord2D {
+  return { x: x * by, y: y * by };
 }
 
-function rotate(byRadians: number, {x, y}: Coord2D): Coord2D {
+function rotate(byRadians: number, { x, y }: Coord2D): Coord2D {
   const currentAngleRadians = Math.atan2(y, x);
   const distance = Math.sqrt((x * x) + (y * y));
   const newAngleRadians = currentAngleRadians + byRadians;
   const rotX = distance * Math.cos(newAngleRadians);
   const rotY = distance * Math.sin(newAngleRadians);
-  return {x: rotX, y: rotY};
+  return { x: rotX, y: rotY };
 }
 
-function sky(focalLength: number, skyHeight: number, horizDrop: number, {x, y}: Coord2D): Coord2D {
+function sky(focalLength: number, skyHeight: number, horizDrop: number, { x, y }: Coord2D): Coord2D {
   const fakeY = y + horizDrop;
   const skyX = (x * skyHeight) / fakeY;
   const skyY = (skyHeight * focalLength) / fakeY;
-  return {x: skyX,  y: skyY};
+  return { x: skyX, y: skyY };
 }
 
 window.onload = () => {
   perlinTest();
   runDemo();
-}
+};

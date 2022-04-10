@@ -4,8 +4,8 @@ function triangleIndexBuffer({ rows, cols }: { rows: number, cols: number }): Ui
   const indices = [];
   const vertexCols = cols + 1;
 
-  for (let i = 0; i < rows; i++) {
-    for (let j = 0; j < cols; j++) {
+  for (let i = 0; i < rows; i += 1) {
+    for (let j = 0; j < cols; j += 1) {
       const topLeft = (i * vertexCols) + j;
 
       // first triangle
@@ -33,17 +33,16 @@ function lineStripIndexBuffer({ rows, cols }: { rows: number, cols: number }): U
 
   indices.push(0);
 
-  for (let i = 0; i < rows; i++) {
-
+  for (let i = 0; i < rows; i += 1) {
     // top line, left to right
-    for (let j = 1; j < vertexCols; j++) {
+    for (let j = 1; j < vertexCols; j += 1) {
       indices.push((i * vertexCols) + j);
     }
 
     // zig-zag back, right to left
-    for (let j = cols - 1; j >= 0; j--) {
-      indices.push((i * vertexCols) + j + 1 + vertexCols);  // down
-      indices.push((i * vertexCols) + j);  // up, left
+    for (let j = cols - 1; j >= 0; j -= 1) {
+      indices.push((i * vertexCols) + j + 1 + vertexCols); // down
+      indices.push((i * vertexCols) + j); // up, left
     }
 
     // final down stroke on the far left
@@ -51,7 +50,7 @@ function lineStripIndexBuffer({ rows, cols }: { rows: number, cols: number }): U
   }
 
   // bottom row, left to right
-  for (let j = 1; j < vertexCols; j++) {
+  for (let j = 1; j < vertexCols; j += 1) {
     indices.push((rows * vertexCols) + j);
   }
 
@@ -63,7 +62,9 @@ function lineStripNumIndices({ rows, cols }: { rows: number, cols: number }): nu
 }
 
 function mesh2DVertexBuffer(
-  { rows, cols, x, y, width, height }: {
+  {
+    rows, cols, x, y, width, height
+  }: {
     rows: number,
     cols: number,
     x: number,
@@ -77,8 +78,8 @@ function mesh2DVertexBuffer(
   const xStep = width / cols;
   const yStep = height / rows;
 
-  for (let i = 0; i <= rows; i++) {
-    for (let j = 0; j <= cols; j++) {
+  for (let i = 0; i <= rows; i += 1) {
+    for (let j = 0; j <= cols; j += 1) {
       vertices.push((j * xStep) + x);
       vertices.push((i * yStep) + y);
     }
@@ -87,13 +88,14 @@ function mesh2DVertexBuffer(
   return new Float32Array(vertices);
 }
 
-
 function meshNumVertices({ rows, cols }: { rows: number, cols: number }): number {
   return (rows + 1) * (cols + 1);
 }
 
 function mesh3DYPlaneVertexBuffer(
-  { rows, cols, x, y, z, width, height }: {
+  {
+    rows, cols, x, y, z, width, height
+  }: {
     rows: number,
     cols: number,
     x: number,
@@ -110,8 +112,8 @@ function mesh3DYPlaneVertexBuffer(
   const zStep = height / rows;
   const noiseZoom = 20;
 
-  for (let i = 0; i <= rows; i++) {
-    for (let j = 0; j <= cols; j++) {
+  for (let i = 0; i <= rows; i += 1) {
+    for (let j = 0; j <= cols; j += 1) {
       const perturbedY = y + perlin.noise(j / noiseZoom, i / noiseZoom);
       vertices.push((j * xStep) + x);
       vertices.push(perturbedY);
@@ -168,7 +170,6 @@ class Mesh<P extends { rows: number, cols: number }> {
 }
 
 export class Mesh2D extends Mesh<Mesh2DProps> {
-
   public constructor(props: Mesh2DProps) {
     super(props);
   }
@@ -189,7 +190,6 @@ type Mesh3DProps = {
 };
 
 export class Mesh3D extends Mesh<Mesh3DProps> {
-
   public constructor(props: Mesh3DProps) {
     super(props);
   }
