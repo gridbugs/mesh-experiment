@@ -1,5 +1,6 @@
 /* eslint-disable */
 import { Mesh3D } from './mesh';
+import { Coord2, c2 } from './coord2';
 import {
   Matrix44, Vector3, Vector4, deg2rad
 } from './math';
@@ -234,7 +235,7 @@ function perlinTest() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     let delta = 0;
-    const speed = 1;
+    const speed = 0.1;
     const cellSize = 1;
     const canvasWidth = canvas.width;
     const canvasHeight = canvas.height;
@@ -303,33 +304,34 @@ function sky(focalLength: number, skyHeight: number, horizDrop: number, { x, y }
 
 function perlinTest2() {
   const perlin = new PerlinNoise2D(XorShiftRng.withRandomSeed());
+  //const perlin = new PerlinNoise2D(XorShiftRng.withSeed(42));
   const [canvas, ctx] = getCanvas2d('c0');
-  const [_c1, ctx1] = getCanvas2d('c1');
-  const [_c2, ctx2] = getCanvas2d('c2');
+  //const [_c1, ctx1] = getCanvas2d('c1');
+  //const [_c2, ctx2] = getCanvas2d('c2');
   let offsetY = 0;
-  const zoom = 0.04;
+  const zoom = 0.1;
+  const pzoom = 7;
   function f() {
-    for (let i = 0; i < canvas.height; i += 1) {
-      for (let j = 0; j < canvas.width; j += 1) {
+    for (let i = 0; i < canvas.height / pzoom; i += 1) {
+      for (let j = 0; j < canvas.width / pzoom; j += 1) {
         const x = j * zoom;
         const y = (i * zoom) + offsetY;
         let colour;
         const noise = perlin.noise01(x, y);
+        const n = Math.floor(noise * 255);
+        colour = `rgb(${n},${n},${n})`;
         const leftX = Math.floor(x);
         const topY = Math.floor(y);
         if (x - leftX < (zoom * 3) && y - topY < (zoom * 3)) {
-          colour = 'red';
+        //  colour = 'red';
         } else if (noise > 0.5 - zoom / 2 && noise < 0.5 + zoom / 2) {
-          colour = 'rgb(0,255,0)';
+        //  colour = 'rgba(0,0,255,0.5)';
         //} else if (noise < 0.3) {
         //  colour = 'rgb(0,0,255)';
-        } else {
-          const n = Math.floor(noise * 255);
-          colour = `rgb(${n},${n},${n})`;
         }
         ctx.fillStyle = colour;
-        ctx.fillRect(j, i, 1, 1);
-
+        ctx.fillRect(j * pzoom, i * pzoom, pzoom, pzoom);
+        /*
         const [dx, dy] = perlin.noiseDxy(x, y);
         function d2c(d: number): string {
           const c = Math.floor(((d + 1) / 2) * 255);
@@ -354,6 +356,7 @@ function perlinTest2() {
         }
         ctx2.fillStyle = colour;
         ctx2.fillRect(j, i, 1, 1);
+        */
 
       }
     }
@@ -361,10 +364,96 @@ function perlinTest2() {
     //setTimeout(f, 50);
   }
   f();
+
+  function lineIncreaseRes(line: Coord2[]): Coord2[] {
+    const ret = [line[0]];
+    for (let i = 1; i < line.length; i += 1) {
+      ret.push(line[i].add(line[i - 1]).scalarDiv(2));
+      ret.push(line[i]);
+    }
+    return ret;
+  }
+
+  function drawLine(line: Coord2[]): void {
+    ctx.beginPath();
+    ctx.lineWidth = 4;
+    ctx.moveTo(line[0].x * pzoom / zoom, line[0].y * pzoom / zoom);
+    for (let i = 1; i < line.length; i += 1) {
+      ctx.lineTo(line[i].x * pzoom / zoom, line[i].y * pzoom / zoom);
+    }
+    ctx.strokeStyle = 'rgb(0,255,0)';
+    ctx.stroke();
+  }
+
+  function getNoise(c: Coord2): number {
+    return perlin.noise01(c.x, c.y);
+  }
+
+  function getNoiseGrad(c: Coord2): Coord2 {
+    const [x, y] = perlin.noiseDxy(c.x, c.y);
+    return c2(x, y);
+  }
+
+  function opt(line: Coord2[]): Coord2[] {
+    const nearnessPenalty = (line[0].sub(line[line.length - 1]).length() / line.length) / 2;
+    const step = 1 / line.length;
+    console.log(nearnessPenalty, step);
+    const ret = line.slice();
+    for (let i = 1; i < line.length - 1; i += 1) {
+      const current = line[i];
+      const noise = getNoise(current);
+      const grad = getNoiseGrad(current);
+      const flatWeight = 2;
+      let down = c2(0, 0);
+      if (noise > 0.5) {
+        down = grad.neg().scalarMul(flatWeight);
+      } else if (noise < 0.5) {
+        down = grad.scalarMul(flatWeight);
+      }
+      for (let j = 0; j < line.length; j += 1) {
+        if (i == j) {
+          continue;
+        }
+        const delta = current.sub(line[j]);
+        if (delta.length() < nearnessPenalty) {
+          down = down.add(delta.scalarMul(2));
+        }
+      }
+      const smoothDest = line[i - 1].add(line[i + 1]).scalarDiv(2);
+      const smoothPull = smoothDest.sub(current);
+      down = down.add(smoothPull.scalarMul(0.5));
+      ret[i] = current.add(down.scalarMul(step));
+    }
+    return ret;
+  }
+
+  function plot(a: Coord2, b: Coord2): Coord2[] {
+    let line = [a, b];
+
+    for (let i = 0; i < 8; i += 1) {
+      line = lineIncreaseRes(line);
+      for (let j = 0; j < 20; j += 1) {
+        line = opt(line);
+      }
+    }
+
+    return line;
+  }
+
+  drawLine(plot(c2(5, 0), c2(5, 5)));
+  drawLine(plot(c2(5, 5), c2(5, 10)));
 }
 
 window.onload = () => {
-  //perlinTest2();
+  /*
+  perlinTest2();
+
+  window.addEventListener('keypress', (e) => {
+    if (e.key === ' ') {
+      perlinTest2();
+    }
+  });
+  */
   perlinTest();
   runDemo();
 };
