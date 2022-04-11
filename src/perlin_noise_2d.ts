@@ -23,10 +23,37 @@ function smootherstep(w: number): number {
   return (w * (w * 6.0 - 15.0) + 10.0) * w * w * w;
 }
 
+// gradient of smootherstep(w) w.r.t w
+function smootherstepDw(w: number): number {
+  return (w * (w * 30.0 - 60.0) + 30.0) * w * w;
+}
+
 function gradientDotWeighted(offsetX: number, offsetY: number, gradientX: number, gradientY: number): number {
-  return smootherstep(Math.abs(1 - Math.abs(offsetX)))
+  return smootherstep(1 - Math.abs(offsetX))
     * smootherstep(1 - Math.abs(offsetY))
     * ((gradientX * offsetX) + (gradientY * offsetY));
+}
+
+function gradientDotWeightedDx(offsetX: number, offsetY: number, gradientX: number, gradientY: number): number {
+  const smoothY = smootherstep(1 - Math.abs(offsetY));
+  let smoothX;
+  let smoothXdX;
+  if (offsetX >= 0) {
+    smoothX = smootherstep(1 - offsetX);
+    smoothXdX = -smootherstepDw(1 - offsetX);
+  } else {
+    smoothX = smootherstep(1 + offsetX);
+    smoothXdX = smootherstepDw(1 + offsetX);
+  }
+  const u = smoothY * smoothX;
+  const v = (offsetX * gradientX) + (offsetY * gradientY);
+  const uDx = smoothXdX * smoothY;
+  const vDx = gradientX;
+  return (u * vDx) + (v * uDx);
+}
+
+function gradientDotWeightedDy(offsetX: number, offsetY: number, gradientX: number, gradientY: number): number {
+  return gradientDotWeightedDx(offsetY, offsetX, gradientY, gradientX);
 }
 
 export class PerlinNoise2D {
@@ -48,13 +75,84 @@ export class PerlinNoise2D {
     rngBak.shuffleInPlaceFloat32Array(this.gradY);
   }
 
+  public noiseDxy(x: number, y: number): [number, number] {
+    const leftX = Math.floor(x);
+    const rightX = leftX + 1;
+    const topY = Math.floor(y);
+    const bottomY = topY + 1;
+    let gradientIndexY;
+    let gradientIndex;
+
+    gradientIndexY = PERMUTATION_TABLE[topY & 0xFF]; // top
+
+    gradientIndex = PERMUTATION_TABLE[(gradientIndexY + leftX) & 0xFF]; // top left
+    let retX = gradientDotWeightedDx(
+      x - leftX,
+      y - topY,
+      this.gradX[gradientIndex],
+      this.gradY[gradientIndex],
+    );
+    let retY = gradientDotWeightedDy(
+      x - leftX,
+      y - topY,
+      this.gradX[gradientIndex],
+      this.gradY[gradientIndex],
+    );
+
+    gradientIndex = PERMUTATION_TABLE[(gradientIndexY + rightX) & 0xFF]; // top right
+    retX += gradientDotWeightedDx(
+      x - rightX,
+      y - topY,
+      this.gradX[gradientIndex],
+      this.gradY[gradientIndex],
+    );
+    retY += gradientDotWeightedDy(
+      x - rightX,
+      y - topY,
+      this.gradX[gradientIndex],
+      this.gradY[gradientIndex],
+    );
+
+    gradientIndexY = PERMUTATION_TABLE[bottomY & 0xFF]; // bottom
+
+    gradientIndex = PERMUTATION_TABLE[(gradientIndexY + leftX) & 0xFF]; // bottom left
+    retX += gradientDotWeightedDx(
+      x - leftX,
+      y - bottomY,
+      this.gradX[gradientIndex],
+      this.gradY[gradientIndex],
+    );
+    retY += gradientDotWeightedDy(
+      x - leftX,
+      y - bottomY,
+      this.gradX[gradientIndex],
+      this.gradY[gradientIndex],
+    );
+
+    gradientIndex = PERMUTATION_TABLE[(gradientIndexY + rightX) & 0xFF]; // bottom right
+    retX += gradientDotWeightedDx(
+      x - rightX,
+      y - bottomY,
+      this.gradX[gradientIndex],
+      this.gradY[gradientIndex],
+    );
+    retY += gradientDotWeightedDy(
+      x - rightX,
+      y - bottomY,
+      this.gradX[gradientIndex],
+      this.gradY[gradientIndex],
+    );
+
+    return [retX, retY];
+  }
+
   public noise(x: number, y: number): number {
     const leftX = Math.floor(x);
     const rightX = leftX + 1;
     const topY = Math.floor(y);
     const bottomY = topY + 1;
-    let gradientIndexY; let
-      gradientIndex;
+    let gradientIndexY;
+    let gradientIndex;
 
     gradientIndexY = PERMUTATION_TABLE[topY & 0xFF]; // top
 

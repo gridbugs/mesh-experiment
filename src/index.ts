@@ -43,6 +43,32 @@ function createShaderProgram(
   throw new Error(`failed to link program:${message}`);
 }
 
+function getCanvasWebgl2(elementId: string): [HTMLCanvasElement, WebGLRenderingContext] {
+  const canvas = document.getElementById(elementId);
+  if (canvas instanceof HTMLCanvasElement) {
+    const gl = canvas.getContext('webgl2');
+    if (gl === null) {
+      throw new Error('failed to create webgl2 context');
+    }
+    return [canvas, gl];
+  } else {
+    throw new Error(`${elementId} doesn't refer to canvas element`);
+  }
+}
+
+function getCanvas2d(elementId: string): [HTMLCanvasElement, CanvasRenderingContext2D] {
+  const canvas = document.getElementById(elementId);
+  if (canvas instanceof HTMLCanvasElement) {
+    const ctx = canvas.getContext('2d');
+    if (ctx === null) {
+      throw new Error('failed to create 2d context');
+    }
+    return [canvas, ctx];
+  } else {
+    throw new Error(`${elementId} doesn't refer to canvas element`);
+  }
+}
+
 function runDemo() {
   const canvas = document.querySelector('#c');
   if (canvas instanceof HTMLCanvasElement) {
@@ -275,7 +301,70 @@ function sky(focalLength: number, skyHeight: number, horizDrop: number, { x, y }
   return { x: skyX, y: skyY };
 }
 
+function perlinTest2() {
+  const perlin = new PerlinNoise2D(XorShiftRng.withRandomSeed());
+  const [canvas, ctx] = getCanvas2d('c0');
+  const [_c1, ctx1] = getCanvas2d('c1');
+  const [_c2, ctx2] = getCanvas2d('c2');
+  let offsetY = 0;
+  const zoom = 0.04;
+  function f() {
+    for (let i = 0; i < canvas.height; i += 1) {
+      for (let j = 0; j < canvas.width; j += 1) {
+        const x = j * zoom;
+        const y = (i * zoom) + offsetY;
+        let colour;
+        const noise = perlin.noise01(x, y);
+        const leftX = Math.floor(x);
+        const topY = Math.floor(y);
+        if (x - leftX < (zoom * 3) && y - topY < (zoom * 3)) {
+          colour = 'red';
+        } else if (noise > 0.5 - zoom / 2 && noise < 0.5 + zoom / 2) {
+          colour = 'rgb(0,255,0)';
+        //} else if (noise < 0.3) {
+        //  colour = 'rgb(0,0,255)';
+        } else {
+          const n = Math.floor(noise * 255);
+          colour = `rgb(${n},${n},${n})`;
+        }
+        ctx.fillStyle = colour;
+        ctx.fillRect(j, i, 1, 1);
+
+        const [dx, dy] = perlin.noiseDxy(x, y);
+        function d2c(d: number): string {
+          const c = Math.floor(((d + 1) / 2) * 255);
+          return `rgb(${c},${c},${c})`;
+        }
+        if (x - leftX < (zoom * 3) && y - topY < (zoom * 3)) {
+          colour = 'red';
+        } else if (noise > 0.5 - zoom / 2 && noise < 0.5 + zoom / 2) {
+          colour = 'rgb(0,255,0)';
+        } else {
+          colour = d2c(dx);
+        }
+        ctx1.fillStyle = colour;
+        ctx1.fillRect(j, i, 1, 1);
+
+        if (x - leftX < (zoom * 3) && y - topY < (zoom * 3)) {
+          colour = 'red';
+        } else if (noise > 0.5 - zoom / 2 && noise < 0.5 + zoom / 2) {
+          colour = 'rgb(0,255,0)';
+        } else {
+          colour = d2c(dy);
+        }
+        ctx2.fillStyle = colour;
+        ctx2.fillRect(j, i, 1, 1);
+
+      }
+    }
+    offsetY += zoom * 1;
+    //setTimeout(f, 50);
+  }
+  f();
+}
+
 window.onload = () => {
+  //perlinTest2();
   perlinTest();
   runDemo();
 };
