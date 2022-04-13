@@ -79,6 +79,39 @@ function runDemo() {
     }
     const gl: WebGL2RenderingContext = maybeGl;
 
+    const vertexShaderSourcePerlin = `#version 300 es
+      in vec2 a_position;
+      void main() {
+        gl_Position = vec4(a_position, 0, 1);
+      }
+    `;
+
+    const fragmentShaderSourcePerlin = `#version 300 es
+      precision highp float;
+      out vec4 outColour;
+      void main() {
+        outColour = vec4(1.0, 0.0, 0.0, 1.0);
+      }
+    `;
+    const shaderProgramPerlin = createShaderProgram(gl, {
+      vertex: createShader(gl, gl.VERTEX_SHADER, vertexShaderSourcePerlin),
+      fragment: createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSourcePerlin),
+    });
+
+    const positionAttributeLocationPerlin = gl.getAttribLocation(shaderProgramPerlin, 'a_position');
+    const vertexBufferPerlin = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBufferPerlin);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, 1, 1, 1, 1, 0, -1, 0]), gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(positionAttributeLocationPerlin);
+    gl.vertexAttribPointer(positionAttributeLocationPerlin, 2, gl.FLOAT, false, 0, 0);
+    const indexBufferPerlin = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBufferPerlin);
+    gl.bufferData(
+      gl.ELEMENT_ARRAY_BUFFER,
+      new Int16Array([0, 2, 1, 0, 3, 2]),
+      gl.STATIC_DRAW,
+    );
+
     const vertexShaderSource = `#version 300 es
 
       in vec3 a_position;
@@ -132,7 +165,6 @@ function runDemo() {
     gl.bufferData(gl.ARRAY_BUFFER, mesh.yPlaneVertexBuffer(perlin), gl.STATIC_DRAW);
     gl.enableVertexAttribArray(positionAttributeLocation);
     gl.vertexAttribPointer(positionAttributeLocation, 3, gl.FLOAT, false, 0, 0);
-
     const colourAttributeLocation = gl.getAttribLocation(shaderProgram, 'a_colour');
     const colourBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, colourBuffer);
@@ -201,19 +233,47 @@ function runDemo() {
 
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
 
-    function draw() {
+    function drawSky() {
+      gl.useProgram(shaderProgramPerlin);
+
+      gl.bindBuffer(gl.ARRAY_BUFFER, vertexBufferPerlin);
+      gl.enableVertexAttribArray(positionAttributeLocationPerlin);
+      gl.vertexAttribPointer(positionAttributeLocationPerlin, 2, gl.FLOAT, false, 0, 0);
+
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBufferPerlin);
+
+      gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+    }
+
+    function drawMountains() {
+      gl.useProgram(shaderProgram);
+
+      gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+      gl.enableVertexAttribArray(positionAttributeLocation);
+      gl.vertexAttribPointer(positionAttributeLocation, 3, gl.FLOAT, false, 0, 0);
+
+      gl.bindBuffer(gl.ARRAY_BUFFER, colourBuffer);
+      gl.vertexAttribPointer(colourAttributeLocation, 3, gl.FLOAT, false, 0, 0);
+      gl.enableVertexAttribArray(colourAttributeLocation);
+
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+
       extrinsic.setMultiply(translate, rotate.setRotateY(deg2rad(count * 0.1)))
         .setMultiply(rotate.setTranslation(0, -160, 0), extrinsic);
       transform.setMultiply(intrinsic, extrinsic);
 
       gl.uniformMatrix4fv(transformUniformLocation, false, transform.data);
 
-      gl.clearColor(0, 0, 0, 0);
-      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-      //gl.drawElements(gl.LINE_STRIP, mesh.lineStripNumIndices(), gl.UNSIGNED_SHORT, 0);
       gl.drawElements(gl.TRIANGLES, mesh.triangleNumIndices(), gl.UNSIGNED_SHORT, 0);
-      count += 1;
+    }
 
+    function draw() {
+      gl.clearColor(0, 0, 0, 1);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      drawSky();
+      gl.clear(gl.DEPTH_BUFFER_BIT);
+      drawMountains();
+      count += 1;
       requestAnimationFrame(draw);
     }
 
@@ -304,7 +364,6 @@ function sky(focalLength: number, skyHeight: number, horizDrop: number, { x, y }
 
 function perlinTest2() {
   const perlin = new PerlinNoise2D(XorShiftRng.withRandomSeed());
-  //const perlin = new PerlinNoise2D(XorShiftRng.withSeed(42));
   const [canvas, ctx] = getCanvas2d('c0');
   //const [_c1, ctx1] = getCanvas2d('c1');
   //const [_c2, ctx2] = getCanvas2d('c2');
