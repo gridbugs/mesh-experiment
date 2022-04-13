@@ -44,7 +44,7 @@ function createShaderProgram(
   throw new Error(`failed to link program:${message}`);
 }
 
-function getCanvasWebgl2(elementId: string): [HTMLCanvasElement, WebGLRenderingContext] {
+function getCanvasWebgl2(elementId: string): [HTMLCanvasElement, WebGL2RenderingContext] {
   const canvas = document.getElementById(elementId);
   if (canvas instanceof HTMLCanvasElement) {
     const gl = canvas.getContext('webgl2');
@@ -71,214 +71,207 @@ function getCanvas2d(elementId: string): [HTMLCanvasElement, CanvasRenderingCont
 }
 
 function runDemo() {
-  const canvas = document.querySelector('#c');
-  if (canvas instanceof HTMLCanvasElement) {
-    const maybeGl = canvas.getContext('webgl2');
-    if (maybeGl === null) {
-      throw new Error('failed to create webgl2 context');
+  const [_, gl] = getCanvasWebgl2('c');
+
+  const vertexShaderSourcePerlin = `#version 300 es
+    in vec2 a_position;
+    void main() {
+      gl_Position = vec4(a_position, 0, 1);
     }
-    const gl: WebGL2RenderingContext = maybeGl;
+  `;
 
-    const vertexShaderSourcePerlin = `#version 300 es
-      in vec2 a_position;
-      void main() {
-        gl_Position = vec4(a_position, 0, 1);
+  const fragmentShaderSourcePerlin = `#version 300 es
+    precision highp float;
+    out vec4 outColour;
+    void main() {
+      outColour = vec4(1.0, 0.0, 0.0, 1.0);
+    }
+  `;
+  const shaderProgramPerlin = createShaderProgram(gl, {
+    vertex: createShader(gl, gl.VERTEX_SHADER, vertexShaderSourcePerlin),
+    fragment: createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSourcePerlin),
+  });
+
+  const positionAttributeLocationPerlin = gl.getAttribLocation(shaderProgramPerlin, 'a_position');
+  const vertexBufferPerlin = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, vertexBufferPerlin);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, 1, 1, 1, 1, 0, -1, 0]), gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(positionAttributeLocationPerlin);
+  gl.vertexAttribPointer(positionAttributeLocationPerlin, 2, gl.FLOAT, false, 0, 0);
+  const indexBufferPerlin = gl.createBuffer();
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBufferPerlin);
+  gl.bufferData(
+    gl.ELEMENT_ARRAY_BUFFER,
+    new Int16Array([0, 2, 1, 0, 3, 2]),
+    gl.STATIC_DRAW,
+  );
+
+  const vertexShaderSource = `#version 300 es
+
+    in vec3 a_position;
+    in vec3 a_colour;
+
+    uniform mat4 u_transform;
+
+    out vec3 v_colour;
+
+    void main() {
+      v_colour = a_colour;
+      gl_Position = u_transform * vec4(a_position, 1);
+    }
+  `;
+  const fragmentShaderSource = `#version 300 es
+
+    precision highp float;
+
+    in vec3 v_colour;
+
+    out vec4 outColour;
+
+    void main() {
+      outColour = vec4(v_colour, 1.0);
+    }
+  `;
+  const shaderProgram = createShaderProgram(
+    gl,
+    {
+      vertex: createShader(gl, gl.VERTEX_SHADER, vertexShaderSource),
+      fragment: createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource),
+    }
+  );
+  gl.useProgram(shaderProgram);
+
+  const perlin = new PerlinNoise2D(XorShiftRng.withRandomSeed());
+
+  const mesh = new Mesh3D({
+    cols: 200,
+    rows: 200,
+    x: -0.5,
+    y: 0,
+    z: -0.5,
+    width: 1.0,
+    height: 1.0,
+  });
+
+  const positionAttributeLocation = gl.getAttribLocation(shaderProgram, 'a_position');
+  const vertexBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, mesh.yPlaneVertexBuffer(perlin), gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(positionAttributeLocation);
+  gl.vertexAttribPointer(positionAttributeLocation, 3, gl.FLOAT, false, 0, 0);
+  const colourAttributeLocation = gl.getAttribLocation(shaderProgram, 'a_colour');
+  const colourBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, colourBuffer);
+  const colours = new Float32Array(mesh.numVertices() * 3);
+  const heightNoiseZoom = 20;
+  const colourNoiseZoom = 10;
+  const snowLineZoom = 2;
+  const snowZoom = 15;
+  for (let i = 0; i < mesh.numVertexRows(); i += 1) {
+    for (let j = 0; j < mesh.numVertexCols(); j += 1) {
+      const height = perlin.noise01(j / heightNoiseZoom, i / heightNoiseZoom);
+      const noiseR = perlin.noise01(42134 + j / colourNoiseZoom, 342452 + i / colourNoiseZoom);
+      const noiseG = perlin.noise01(j / colourNoiseZoom, i / colourNoiseZoom);
+      const noiseB = perlin.noise01(23423 + j / colourNoiseZoom, 4242341 + i / colourNoiseZoom);
+      const noiseSnowLine = perlin.noise(9980980 + j / snowLineZoom, 76876 + i / snowLineZoom);
+      const noiseSnow1 = perlin.noise01(74533 + j / snowZoom, 56452 + i / snowZoom);
+      const noiseSnow2 = perlin.noise01(897987 + j / snowZoom, 342342 + i / snowZoom);
+      const base = 3 * (i * mesh.numVertexCols() + j);
+      if (height > (0.6 + noiseSnowLine * 0.1)) {
+        colours[base + 0] = 0.7 + noiseSnow1 * 0.1;
+        colours[base + 1] = 0.7 + noiseSnow1 * 0.1;
+        colours[base + 2] = 0.8 + noiseSnow2 * 0.2;
+      } else {
+        colours[base + 0] = 0.1 + noiseR * 0.4;
+        colours[base + 1] = 0.2 + noiseG * 0.5;
+        colours[base + 2] = noiseB * 0.2;
       }
-    `;
+    }
+  }
 
-    const fragmentShaderSourcePerlin = `#version 300 es
-      precision highp float;
-      out vec4 outColour;
-      void main() {
-        outColour = vec4(1.0, 0.0, 0.0, 1.0);
-      }
-    `;
-    const shaderProgramPerlin = createShaderProgram(gl, {
-      vertex: createShader(gl, gl.VERTEX_SHADER, vertexShaderSourcePerlin),
-      fragment: createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSourcePerlin),
-    });
+  gl.bufferData(gl.ARRAY_BUFFER, colours, gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(colourAttributeLocation);
+  gl.vertexAttribPointer(colourAttributeLocation, 3, gl.FLOAT, false, 0, 0);
 
-    const positionAttributeLocationPerlin = gl.getAttribLocation(shaderProgramPerlin, 'a_position');
-    const vertexBufferPerlin = gl.createBuffer();
+  const indexBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+  gl.bufferData(
+    gl.ELEMENT_ARRAY_BUFFER,
+    mesh.triangleIndexBuffer(),
+    gl.STATIC_DRAW,
+  );
+
+  const indexBufferWireframe = gl.createBuffer();
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBufferWireframe);
+  gl.bufferData(
+    gl.ELEMENT_ARRAY_BUFFER,
+    mesh.lineStripIndexBuffer(),
+    gl.STATIC_DRAW,
+  );
+
+  gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+  gl.enable(gl.DEPTH_TEST);
+  gl.enable(gl.CULL_FACE);
+
+  let count = 0;
+
+  const intrinsic = new Matrix44().setProject(deg2rad(90), 1, 0.1, 10000);
+  const extrinsic = new Matrix44();
+  const translate = new Matrix44().setIdentity();
+  translate.setMultiply(translate, new Matrix44().setScale(4000, 500, 4000));
+  const rotate = new Matrix44();
+
+  const transform = new Matrix44();
+  const transformUniformLocation = gl.getUniformLocation(shaderProgram, 'u_transform');
+
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+
+  function drawSky() {
+    gl.useProgram(shaderProgramPerlin);
+
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexBufferPerlin);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, 1, 1, 1, 1, 0, -1, 0]), gl.STATIC_DRAW);
     gl.enableVertexAttribArray(positionAttributeLocationPerlin);
     gl.vertexAttribPointer(positionAttributeLocationPerlin, 2, gl.FLOAT, false, 0, 0);
-    const indexBufferPerlin = gl.createBuffer();
+
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBufferPerlin);
-    gl.bufferData(
-      gl.ELEMENT_ARRAY_BUFFER,
-      new Int16Array([0, 2, 1, 0, 3, 2]),
-      gl.STATIC_DRAW,
-    );
 
-    const vertexShaderSource = `#version 300 es
+    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+  }
 
-      in vec3 a_position;
-      in vec3 a_colour;
-
-      uniform mat4 u_transform;
-
-      out vec3 v_colour;
-
-      void main() {
-        v_colour = a_colour;
-        gl_Position = u_transform * vec4(a_position, 1);
-      }
-    `;
-    const fragmentShaderSource = `#version 300 es
-
-      precision highp float;
-
-      in vec3 v_colour;
-
-      out vec4 outColour;
-
-      void main() {
-        outColour = vec4(v_colour, 1.0);
-      }
-    `;
-    const shaderProgram = createShaderProgram(
-      gl,
-      {
-        vertex: createShader(gl, gl.VERTEX_SHADER, vertexShaderSource),
-        fragment: createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource),
-      }
-    );
+  function drawMountains() {
     gl.useProgram(shaderProgram);
 
-    const perlin = new PerlinNoise2D(XorShiftRng.withRandomSeed());
-
-    const mesh = new Mesh3D({
-      cols: 200,
-      rows: 200,
-      x: -0.5,
-      y: 0,
-      z: -0.5,
-      width: 1.0,
-      height: 1.0,
-    });
-
-    const positionAttributeLocation = gl.getAttribLocation(shaderProgram, 'a_position');
-    const vertexBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, mesh.yPlaneVertexBuffer(perlin), gl.STATIC_DRAW);
     gl.enableVertexAttribArray(positionAttributeLocation);
     gl.vertexAttribPointer(positionAttributeLocation, 3, gl.FLOAT, false, 0, 0);
-    const colourAttributeLocation = gl.getAttribLocation(shaderProgram, 'a_colour');
-    const colourBuffer = gl.createBuffer();
+
     gl.bindBuffer(gl.ARRAY_BUFFER, colourBuffer);
-    const colours = new Float32Array(mesh.numVertices() * 3);
-    const heightNoiseZoom = 20;
-    const colourNoiseZoom = 10;
-    const snowLineZoom = 2;
-    const snowZoom = 15;
-    for (let i = 0; i < mesh.numVertexRows(); i += 1) {
-      for (let j = 0; j < mesh.numVertexCols(); j += 1) {
-        const height = perlin.noise01(j / heightNoiseZoom, i / heightNoiseZoom);
-        const noiseR = perlin.noise01(42134 + j / colourNoiseZoom, 342452 + i / colourNoiseZoom);
-        const noiseG = perlin.noise01(j / colourNoiseZoom, i / colourNoiseZoom);
-        const noiseB = perlin.noise01(23423 + j / colourNoiseZoom, 4242341 + i / colourNoiseZoom);
-        const noiseSnowLine = perlin.noise(9980980 + j / snowLineZoom, 76876 + i / snowLineZoom);
-        const noiseSnow1 = perlin.noise01(74533 + j / snowZoom, 56452 + i / snowZoom);
-        const noiseSnow2 = perlin.noise01(897987 + j / snowZoom, 342342 + i / snowZoom);
-        const base = 3 * (i * mesh.numVertexCols() + j);
-        if (height > (0.6 + noiseSnowLine * 0.1)) {
-          colours[base + 0] = 0.7 + noiseSnow1 * 0.1;
-          colours[base + 1] = 0.7 + noiseSnow1 * 0.1;
-          colours[base + 2] = 0.8 + noiseSnow2 * 0.2;
-        } else {
-          colours[base + 0] = 0.1 + noiseR * 0.4;
-          colours[base + 1] = 0.2 + noiseG * 0.5;
-          colours[base + 2] = noiseB * 0.2;
-        }
-      }
-    }
-
-    gl.bufferData(gl.ARRAY_BUFFER, colours, gl.STATIC_DRAW);
-    gl.enableVertexAttribArray(colourAttributeLocation);
     gl.vertexAttribPointer(colourAttributeLocation, 3, gl.FLOAT, false, 0, 0);
-
-    const indexBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-    gl.bufferData(
-      gl.ELEMENT_ARRAY_BUFFER,
-      mesh.triangleIndexBuffer(),
-      gl.STATIC_DRAW,
-    );
-
-    const indexBufferWireframe = gl.createBuffer();
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBufferWireframe);
-    gl.bufferData(
-      gl.ELEMENT_ARRAY_BUFFER,
-      mesh.lineStripIndexBuffer(),
-      gl.STATIC_DRAW,
-    );
-
-    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-
-    gl.enable(gl.DEPTH_TEST);
-    gl.enable(gl.CULL_FACE);
-
-    let count = 0;
-
-    const intrinsic = new Matrix44().setProject(deg2rad(90), 1, 0.1, 10000);
-    const extrinsic = new Matrix44();
-    const translate = new Matrix44().setIdentity();
-    translate.setMultiply(translate, new Matrix44().setScale(4000, 500, 4000));
-    const rotate = new Matrix44();
-
-    const transform = new Matrix44();
-    const transformUniformLocation = gl.getUniformLocation(shaderProgram, 'u_transform');
+    gl.enableVertexAttribArray(colourAttributeLocation);
 
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
 
-    function drawSky() {
-      gl.useProgram(shaderProgramPerlin);
+    extrinsic.setMultiply(translate, rotate.setRotateY(deg2rad(count * 0.1)))
+      .setMultiply(rotate.setTranslation(0, -160, 0), extrinsic);
+    transform.setMultiply(intrinsic, extrinsic);
 
-      gl.bindBuffer(gl.ARRAY_BUFFER, vertexBufferPerlin);
-      gl.enableVertexAttribArray(positionAttributeLocationPerlin);
-      gl.vertexAttribPointer(positionAttributeLocationPerlin, 2, gl.FLOAT, false, 0, 0);
+    gl.uniformMatrix4fv(transformUniformLocation, false, transform.data);
 
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBufferPerlin);
-
-      gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
-    }
-
-    function drawMountains() {
-      gl.useProgram(shaderProgram);
-
-      gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-      gl.enableVertexAttribArray(positionAttributeLocation);
-      gl.vertexAttribPointer(positionAttributeLocation, 3, gl.FLOAT, false, 0, 0);
-
-      gl.bindBuffer(gl.ARRAY_BUFFER, colourBuffer);
-      gl.vertexAttribPointer(colourAttributeLocation, 3, gl.FLOAT, false, 0, 0);
-      gl.enableVertexAttribArray(colourAttributeLocation);
-
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-
-      extrinsic.setMultiply(translate, rotate.setRotateY(deg2rad(count * 0.1)))
-        .setMultiply(rotate.setTranslation(0, -160, 0), extrinsic);
-      transform.setMultiply(intrinsic, extrinsic);
-
-      gl.uniformMatrix4fv(transformUniformLocation, false, transform.data);
-
-      gl.drawElements(gl.TRIANGLES, mesh.triangleNumIndices(), gl.UNSIGNED_SHORT, 0);
-    }
-
-    function draw() {
-      gl.clearColor(0, 0, 0, 1);
-      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-      drawSky();
-      gl.clear(gl.DEPTH_BUFFER_BIT);
-      drawMountains();
-      count += 1;
-      requestAnimationFrame(draw);
-    }
-
-    draw();
+    gl.drawElements(gl.TRIANGLES, mesh.triangleNumIndices(), gl.UNSIGNED_SHORT, 0);
   }
+
+  function draw() {
+    gl.clearColor(0, 0, 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    drawSky();
+    gl.clear(gl.DEPTH_BUFFER_BIT);
+    drawMountains();
+    count += 1;
+    requestAnimationFrame(draw);
+  }
+
+  draw();
 }
 
 function perlinTest() {
