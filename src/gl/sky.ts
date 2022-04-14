@@ -1,7 +1,5 @@
 import { createShader, createShaderProgram } from './util';
 
-export type Sky = SkyShaderProgram & SkyBuffers;
-
 type SkyShaderProgram = {
   shaderProgram: WebGLProgram,
   attributeLocations: {
@@ -12,7 +10,9 @@ type SkyShaderProgram = {
 type SkyBuffers = {
   vertexBuffer: WebGLBuffer,
   indexBuffer: WebGLBuffer,
-}
+};
+
+export type Sky = SkyShaderProgram & SkyBuffers;
 
 function createSkyShaderProgram(gl: WebGL2RenderingContext): SkyShaderProgram {
   const vertexShaderSource = `#version 300 es
@@ -64,10 +64,13 @@ export function createSky(gl: WebGL2RenderingContext): Sky {
 }
 
 export function renderSky(gl: WebGL2RenderingContext, sky: Sky): void {
-  gl.useProgram(sky.shaderProgram);
-  gl.bindBuffer(gl.ARRAY_BUFFER, sky.vertexBuffer);
-  gl.enableVertexAttribArray(sky.attributeLocations.position);
-  gl.vertexAttribPointer(sky.attributeLocations.position, 2, gl.FLOAT, false, 0, 0);
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, sky.indexBuffer);
+  const {
+    shaderProgram, indexBuffer, vertexBuffer, attributeLocations
+  } = sky;
+  gl.useProgram(shaderProgram);
+  gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+  gl.enableVertexAttribArray(attributeLocations.position);
+  gl.vertexAttribPointer(attributeLocations.position, 2, gl.FLOAT, false, 0, 0);
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
   gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
 }
