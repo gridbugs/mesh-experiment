@@ -52,10 +52,10 @@ function runDemo() {
   const transform = new Matrix44();
 
   function draw() {
-    gl.clearColor(0, 0, 0, 1);
+    //gl.clearColor(0, 0, 0, 1);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    renderSky(gl, sky);
+    //renderSky(gl, sky);
     gl.clear(gl.DEPTH_BUFFER_BIT);
 
     extrinsic.setMultiply(translate, rotate.setRotateY(deg2rad(count * 0.1)))
