@@ -1,6 +1,6 @@
 import { XorShiftRng } from './xor_shift_rng';
 
-const PERMUTATION_TABLE: Uint8Array = new Uint8Array([
+export const PERMUTATION_TABLE: Uint8Array = new Uint8Array([
   151, 160, 137, 91, 90, 15, 131, 13, 201, 95, 96, 53, 194, 233, 7, 225, 140, 36,
   103, 30, 69, 142, 8, 99, 37, 240, 21, 10, 23, 190, 6, 148, 247, 120, 234, 75, 0,
   26, 197, 62, 94, 252, 219, 203, 117, 35, 11, 32, 57, 177, 33, 88, 237, 149, 56,
@@ -56,23 +56,30 @@ function gradientDotWeightedDy(offsetX: number, offsetY: number, gradientX: numb
   return gradientDotWeightedDx(offsetY, offsetX, gradientY, gradientX);
 }
 
+export function createGradTables(rng: XorShiftRng): { x: Float32Array, y: Float32Array } {
+  const gradX = new Float32Array(256);
+  const gradY = new Float32Array(256);
+  for (let i = 0; i < 256; i += 1) {
+    const angle = (Math.PI * 2 * i) / 256;
+    gradX[i] = Math.cos(angle);
+    gradY[i] = Math.sin(angle);
+  }
+  // make a copy of the rng so both arrays can be shuffled the same way
+  const rngBak = rng.clone();
+  rng.shuffleInPlaceFloat32Array(gradX);
+  rngBak.shuffleInPlaceFloat32Array(gradY);
+  return { x: gradX, y: gradY };
+}
+
 export class PerlinNoise2D {
   private readonly gradX: Float32Array;
 
   private readonly gradY: Float32Array;
 
   public constructor(rng: XorShiftRng) {
-    this.gradX = new Float32Array(256);
-    this.gradY = new Float32Array(256);
-    for (let i = 0; i < 256; i += 1) {
-      const angle = (Math.PI * 2 * i) / 256;
-      this.gradX[i] = Math.cos(angle);
-      this.gradY[i] = Math.sin(angle);
-    }
-    // make a copy of the rng so both arrays can be shuffled the same way
-    const rngBak = rng.clone();
-    rng.shuffleInPlaceFloat32Array(this.gradX);
-    rngBak.shuffleInPlaceFloat32Array(this.gradY);
+    const { x: gradX, y: gradY } = createGradTables(rng);
+    this.gradX = gradX;
+    this.gradY = gradY;
   }
 
   public noiseDxy(x: number, y: number): [number, number] {

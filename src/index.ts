@@ -5,7 +5,7 @@ import {
 } from './math';
 import { XorShiftRng } from './xor_shift_rng';
 import { PerlinNoise2D } from './perlin_noise_2d';
-import { createSky, renderSky } from './gl/sky';
+import { createSky, renderSky, SKY_COLOUR } from './gl/sky';
 import { createMountains, renderMountains } from './gl/mountains';
 
 function getCanvasWebgl2(elementId: string): [HTMLCanvasElement, WebGL2RenderingContext] {
@@ -39,7 +39,7 @@ function runDemo() {
 
   const [_, gl] = getCanvasWebgl2('c');
 
-  const sky = createSky(gl);
+  const sky = createSky(gl, XorShiftRng.withRandomSeed());
   const mountains = createMountains(gl, perlin);
 
   let count = 0;
@@ -52,13 +52,15 @@ function runDemo() {
   const transform = new Matrix44();
 
   function draw() {
-    //gl.clearColor(0, 0, 0, 1);
+    //gl.clearColor(SKY_COLOUR.r, SKY_COLOUR.g, SKY_COLOUR.b, 1);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    //renderSky(gl, sky);
-    gl.clear(gl.DEPTH_BUFFER_BIT);
+    const rotationRad = deg2rad(count * 0.1)
 
-    extrinsic.setMultiply(translate, rotate.setRotateY(deg2rad(count * 0.1)))
+    //renderSky(gl, sky);
+    gl.clear(gl.DEPTH_BUFFER_BIT); // simplifies rendering the mountains in front of the sky
+
+    extrinsic.setMultiply(translate, rotate.setRotateY(rotationRad))
       .setMultiply(rotate.setTranslation(0, -160, 0), extrinsic);
     transform.setMultiply(intrinsic, extrinsic);
     renderMountains(gl, mountains, transform);
@@ -88,7 +90,7 @@ function perlinTest() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     let delta = 0;
-    const speed = 0.1;
+    const speed = 1;
     const cellSize = 1;
     const canvasWidth = canvas.width;
     const canvasHeight = canvas.height;
@@ -104,7 +106,7 @@ function perlinTest() {
 
           const screenCoord = { x, y };
 
-          const wind = scale(0.5, { x: 1, y: 1 });
+          const wind = scale(0.1, { x: 1, y: 1 });
           const horizDrop = 0.0;
           const rot = -0.1;
           const sampleCoordHighCloud = scale(0.05, translate(scale(2 * delta, wind), rotate(deg2rad(rot * delta), sky(1, 100, horizDrop, screenCoord))));
@@ -296,6 +298,18 @@ function perlinTest2() {
   drawLine(plot(c2(5, 5), c2(5, 10)));
 }
 
+let lastTimestamp = Date.now();
+function runFps() {
+  const timestamp = Date.now();
+  const delta = timestamp - lastTimestamp;
+  lastTimestamp = timestamp;
+  const fpsNode = document.querySelector('#fps');
+  if (fpsNode !== null) {
+    fpsNode.innerHTML = `${delta}ms`;
+  }
+  requestAnimationFrame(runFps);
+}
+
 window.onload = () => {
   /*
   perlinTest2();
@@ -308,4 +322,5 @@ window.onload = () => {
   */
   perlinTest();
   runDemo();
+  //runFps();
 };
